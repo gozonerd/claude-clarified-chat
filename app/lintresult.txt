@@ -1,0 +1,20 @@
+
+> claude-clarified-chat@0.1.0 lint
+> eslint . --max-warnings=0
+
+
+C:\Users\NerdyKrystal\repos\claude-clarified-chat\.claude\worktrees\festive-montalcini-29b30a\workspace\app\src\core\parse\parser.test.ts
+  341:20  error  This assertion is unnecessary since it does not change the type of the expression  @typescript-eslint/no-unnecessary-type-assertion
+
+C:\Users\NerdyKrystal\repos\claude-clarified-chat\.claude\worktrees\festive-montalcini-29b30a\workspace\app\src\core\parse\parser.ts
+  131:7  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-unnecessary-type-assertion')
+  155:5  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-unnecessary-type-assertion')
+
+C:\Users\NerdyKrystal\repos\claude-clarified-chat\.claude\worktrees\festive-montalcini-29b30a\workspace\app\src\core\store\store.test.ts
+  111:29  error  This assertion is unnecessary since it does not change the type of the expression  @typescript-eslint/no-unnecessary-type-assertion
+  113:29  error  This assertion is unnecessary since it does not change the type of the expression  @typescript-eslint/no-unnecessary-type-assertion
+  115:29  error  This assertion is unnecessary since it does not change the type of the expression  @typescript-eslint/no-unnecessary-type-assertion
+
+✖ 6 problems (4 errors, 2 warnings)
+  4 errors and 2 warnings potentially fixable with the `--fix` option.
+

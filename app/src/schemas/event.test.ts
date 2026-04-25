@@ -1,217 +1,192 @@
 import { describe, it, expect } from 'vitest';
-import { EventSchema } from './event';
+import {
+  RawEventSchema,
+  ContentBlockSchema,
+  EventSchema,
+} from './event';
+import {
+  loadRealExportJsonlLines,
+  realExportFixturesPresent,
+} from '../__fixtures__/loadRealExport';
 
-describe('EventSchema', () => {
-  it('parses user event variant', () => {
-    const data = {
-      id: 'event-1',
-      type: 'user' as const,
-      timestamp: '2026-04-22T12:00:00Z',
-      content: 'hello',
-    };
-    const result = EventSchema.safeParse(data);
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.type).toBe('user');
-      expect(result.data.id).toBe('event-1');
+const fixturesPresent = realExportFixturesPresent();
+
+describe('RawEventSchema — empirical Claude Desktop shape', () => {
+  describe.runIf(fixturesPresent)('against 3 real export JSONL files', () => {
+    const fixtures = [
+      'export-small-1776882591631',
+      'export-mid-1777064512813',
+      'export-large-1777095820500',
+    ] as const;
+
+    for (const name of fixtures) {
+      it(`accepts every line in ${name}`, () => {
+        const lines = loadRealExportJsonlLines(name);
+        expect(lines.length).toBeGreaterThan(0);
+        let parsed = 0;
+        let firstFailure: string | null = null;
+        for (const line of lines) {
+          const obj: unknown = JSON.parse(line);
+          const result = RawEventSchema.safeParse(obj);
+          if (result.success) {
+            parsed++;
+          } else if (firstFailure === null) {
+            firstFailure = `line "${line.slice(0, 200)}" → ${result.error.message}`;
+          }
+        }
+        expect({ parsed, total: lines.length, firstFailure }).toEqual({
+          parsed: lines.length,
+          total: lines.length,
+          firstFailure: null,
+        });
+      });
     }
   });
 
-  it('parses assistant event variant', () => {
-    const data = {
-      id: 'event-2',
-      type: 'assistant' as const,
-      timestamp: '2026-04-22T12:00:00Z',
-      content: 'response',
-    };
-    const result = EventSchema.safeParse(data);
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.type).toBe('assistant');
-    }
+  describe.runIf(fixturesPresent)('discriminator coverage', () => {
+    it('parses every type variant we model', () => {
+      const lines = loadRealExportJsonlLines('export-large-1777095820500');
+      const seen = new Set<string>();
+      for (const line of lines) {
+        const obj = JSON.parse(line) as { type?: string };
+        const r = RawEventSchema.safeParse(obj);
+        if (r.success) seen.add(r.data.type);
+      }
+      expect(seen).toEqual(
+        new Set([
+          'user',
+          'assistant',
+          'system',
+          'queue-operation',
+          'last-prompt',
+          'custom-title',
+          'attachment',
+        ]),
+      );
+    });
   });
 
-  it('parses tool_use event variant', () => {
-    const data = {
-      id: 'event-3',
-      type: 'tool_use' as const,
-      timestamp: '2026-04-22T12:00:00Z',
-      content: { tool: 'test' },
-    };
-    const result = EventSchema.safeParse(data);
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.type).toBe('tool_use');
-    }
+  describe('rejection — wrong shapes', () => {
+    it('rejects an object missing the type discriminator', () => {
+      const r = RawEventSchema.safeParse({ uuid: 'x', sessionId: 's' });
+      expect(r.success).toBe(false);
+    });
+
+    it('rejects an unknown type value', () => {
+      const r = RawEventSchema.safeParse({
+        type: 'made-up-type',
+        sessionId: 's',
+      });
+      expect(r.success).toBe(false);
+    });
+
+    it('rejects user event with missing message', () => {
+      const r = RawEventSchema.safeParse({
+        type: 'user',
+        uuid: 'u',
+        parentUuid: null,
+        isSidechain: false,
+        timestamp: '2026-01-01T00:00:00Z',
+        sessionId: 's',
+      });
+      expect(r.success).toBe(false);
+    });
+
+    it('rejects user event whose message has wrong role', () => {
+      const r = RawEventSchema.safeParse({
+        type: 'user',
+        uuid: 'u',
+        parentUuid: null,
+        isSidechain: false,
+        timestamp: '2026-01-01T00:00:00Z',
+        sessionId: 's',
+        message: { role: 'assistant', content: 'oops' },
+      });
+      expect(r.success).toBe(false);
+    });
+
+    it('rejects assistant event whose message.content is a string (must be array)', () => {
+      const r = RawEventSchema.safeParse({
+        type: 'assistant',
+        uuid: 'u',
+        parentUuid: null,
+        isSidechain: false,
+        timestamp: '2026-01-01T00:00:00Z',
+        sessionId: 's',
+        message: { role: 'assistant', content: 'flat string forbidden here' },
+      });
+      expect(r.success).toBe(false);
+    });
   });
 
-  it('parses tool_result event variant', () => {
-    const data = {
-      id: 'event-4',
-      type: 'tool_result' as const,
-      timestamp: '2026-04-22T12:00:00Z',
-      content: 'result',
-    };
-    const result = EventSchema.safeParse(data);
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.type).toBe('tool_result');
-    }
+  describe('forward-compat passthrough', () => {
+    it('allows unknown top-level fields on conversational events', () => {
+      const r = RawEventSchema.safeParse({
+        type: 'user',
+        uuid: 'u',
+        parentUuid: null,
+        isSidechain: false,
+        timestamp: '2026-01-01T00:00:00Z',
+        sessionId: 's',
+        message: { role: 'user', content: 'hi' },
+        someFutureField: { deeply: 'nested' },
+      });
+      expect(r.success).toBe(true);
+    });
+  });
+});
+
+describe('ContentBlockSchema', () => {
+  it('parses a text block', () => {
+    const r = ContentBlockSchema.safeParse({ type: 'text', text: 'hello' });
+    expect(r.success).toBe(true);
   });
 
-  it('parses thinking event variant', () => {
-    const data = {
-      id: 'event-5',
-      type: 'thinking' as const,
-      timestamp: '2026-04-22T12:00:00Z',
-      content: 'reasoning',
-    };
-    const result = EventSchema.safeParse(data);
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.type).toBe('thinking');
-    }
+  it('parses a thinking block', () => {
+    const r = ContentBlockSchema.safeParse({
+      type: 'thinking',
+      thinking: 'reasoning',
+      signature: 'sig',
+    });
+    expect(r.success).toBe(true);
   });
 
-  it('parses system event variant', () => {
-    const data = {
-      id: 'event-6',
-      type: 'system' as const,
-      timestamp: '2026-04-22T12:00:00Z',
-      content: 'system info',
-    };
-    const result = EventSchema.safeParse(data);
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.type).toBe('system');
-    }
+  it('parses a tool_use block', () => {
+    const r = ContentBlockSchema.safeParse({
+      type: 'tool_use',
+      id: 'toolu_x',
+      name: 'Read',
+      input: { file_path: '/x' },
+    });
+    expect(r.success).toBe(true);
   });
 
-  it('includes optional tokens when present', () => {
-    const data = {
-      id: 'event-7',
-      type: 'user' as const,
-      timestamp: '2026-04-22T12:00:00Z',
-      content: 'test',
-      tokens: { input: 100, output: 50 },
-    };
-    const result = EventSchema.safeParse(data);
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.tokens).toEqual({ input: 100, output: 50 });
-    }
+  it('parses a tool_result block', () => {
+    const r = ContentBlockSchema.safeParse({
+      type: 'tool_result',
+      tool_use_id: 'toolu_x',
+      content: 'output',
+    });
+    expect(r.success).toBe(true);
   });
 
-  it('handles optional tokens when absent', () => {
-    const data = {
-      id: 'event-8',
-      type: 'user' as const,
-      timestamp: '2026-04-22T12:00:00Z',
-      content: 'test',
-    };
-    const result = EventSchema.safeParse(data);
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.tokens).toBeUndefined();
-    }
+  it('rejects a tool_use block missing id', () => {
+    const r = ContentBlockSchema.safeParse({
+      type: 'tool_use',
+      name: 'Read',
+      input: {},
+    });
+    expect(r.success).toBe(false);
   });
 
-  it('includes optional subagent_id when present', () => {
-    const data = {
-      id: 'event-9',
-      type: 'assistant' as const,
-      timestamp: '2026-04-22T12:00:00Z',
-      content: 'test',
-      subagent_id: 'agent-1',
-    };
-    const result = EventSchema.safeParse(data);
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.subagent_id).toBe('agent-1');
-    }
+  it('rejects an unknown block type', () => {
+    const r = ContentBlockSchema.safeParse({ type: 'image', src: 'x' });
+    expect(r.success).toBe(false);
   });
+});
 
-  it('handles optional subagent_id when absent', () => {
-    const data = {
-      id: 'event-10',
-      type: 'assistant' as const,
-      timestamp: '2026-04-22T12:00:00Z',
-      content: 'test',
-    };
-    const result = EventSchema.safeParse(data);
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.subagent_id).toBeUndefined();
-    }
-  });
-
-  it('rejects event with missing id', () => {
-    const data = {
-      type: 'user' as const,
-      timestamp: '2026-04-22T12:00:00Z',
-      content: 'test',
-    };
-    const result = EventSchema.safeParse(data);
-    expect(result.success).toBe(false);
-  });
-
-  it('rejects event with empty id', () => {
-    const data = {
-      id: '',
-      type: 'user' as const,
-      timestamp: '2026-04-22T12:00:00Z',
-      content: 'test',
-    };
-    const result = EventSchema.safeParse(data);
-    expect(result.success).toBe(false);
-  });
-
-  it('rejects event with invalid timestamp', () => {
-    const data = {
-      id: 'event-11',
-      type: 'user' as const,
-      timestamp: 'not-a-date',
-      content: 'test',
-    };
-    const result = EventSchema.safeParse(data);
-    expect(result.success).toBe(false);
-  });
-
-  it('rejects event with invalid type', () => {
-    const data = {
-      id: 'event-12',
-      type: 'invalid',
-      timestamp: '2026-04-22T12:00:00Z',
-      content: 'test',
-    };
-    const result = EventSchema.safeParse(data);
-    expect(result.success).toBe(false);
-  });
-
-  it('rejects negative token input', () => {
-    const data = {
-      id: 'event-13',
-      type: 'user' as const,
-      timestamp: '2026-04-22T12:00:00Z',
-      content: 'test',
-      tokens: { input: -1, output: 10 },
-    };
-    const result = EventSchema.safeParse(data);
-    expect(result.success).toBe(false);
-  });
-
-  it('accepts zero token values', () => {
-    const data = {
-      id: 'event-14',
-      type: 'user' as const,
-      timestamp: '2026-04-22T12:00:00Z',
-      content: 'test',
-      tokens: { input: 0, output: 0 },
-    };
-    const result = EventSchema.safeParse(data);
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.tokens).toEqual({ input: 0, output: 0 });
-    }
+describe('EventSchema (alias for RawEventSchema)', () => {
+  it('is the same schema as RawEventSchema for legacy imports', () => {
+    expect(EventSchema).toBe(RawEventSchema);
   });
 });

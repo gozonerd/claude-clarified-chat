@@ -6,3 +6,10 @@ playwright-report
 test-results
 .vite
 *.log
+
+# Real Claude Desktop export fixtures (F13 prevention). Per IP-clean discipline,
+# real exports contain user-session content and are not committed. Local dev
+# drops .zip exports into src/__fixtures__/real-exports/ to run F13 tests; CI
+# without fixtures skips those tests.
+src/__fixtures__/real-exports/*.zip
+src/__fixtures__/real-exports/*-extracted/

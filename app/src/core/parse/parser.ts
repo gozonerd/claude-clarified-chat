@@ -1,11 +1,12 @@
 import { strFromU8 } from 'fflate';
-import { EventSchema } from '../../schemas/event';
+import { RawEventSchema } from '../../schemas/event';
 import { MetadataSchema, type Metadata } from '../../schemas/metadata';
 import { SubAgentMetaSchema, type SubAgentMeta } from '../../schemas/subagent';
 import { unavailable, type UnavailableMarker } from '../../schemas/unavailable';
 import type { FileMap } from '../ingest/types';
 import { EventStore } from '../store/store';
 import type { LogEntry } from '../store/types';
+import { normalize } from './normalize';
 
 export type ParseResult = {
   store: EventStore;
@@ -15,7 +16,6 @@ export type ParseResult = {
 };
 
 export function decode(data: Uint8Array): string {
-  // Prefer fflate for performance, but ensure robustness
   return strFromU8(data);
 }
 
@@ -26,7 +26,6 @@ export async function parse(files: FileMap): Promise<ParseResult> {
   const subagentMetas = new Map<string, SubAgentMeta>();
   const toolResults = new Map<string, string>();
 
-  // Parse metadata.json
   for (const [path, data] of files.entries()) {
     if (path === 'metadata.json' || path.endsWith('/metadata.json')) {
       metadata = parseMetadata(data, path);
@@ -34,14 +33,12 @@ export async function parse(files: FileMap): Promise<ParseResult> {
     }
   }
 
-  // Parse main events.jsonl
   for (const [path, data] of files.entries()) {
     if (path.endsWith('.jsonl') && !path.startsWith('subagents/')) {
       parseJsonl(data, path, store);
     }
   }
 
-  // Parse subagent metadata
   for (const [path, data] of files.entries()) {
     if (path.startsWith('subagents/') && path.endsWith('.meta.json')) {
       const text = decode(data);
@@ -69,14 +66,12 @@ export async function parse(files: FileMap): Promise<ParseResult> {
     }
   }
 
-  // Parse subagent events
   for (const [path, data] of files.entries()) {
     if (path.startsWith('subagents/') && path.endsWith('.jsonl')) {
       parseJsonl(data, path, store);
     }
   }
 
-  // Parse tool results
   for (const [path, data] of files.entries()) {
     if (path.startsWith('tool-results/') && path.endsWith('.txt')) {
       const base = path.slice('tool-results/'.length, -'.txt'.length);
@@ -84,7 +79,6 @@ export async function parse(files: FileMap): Promise<ParseResult> {
     }
   }
 
-  // Parse logs
   for (const [path, data] of files.entries()) {
     if (path.startsWith('logs/') && path.endsWith('.log')) {
       const text = decode(data);
@@ -115,9 +109,12 @@ function parseJsonl(data: Uint8Array, sourcePath: string, store: EventStore): vo
     if (line === undefined || line.trim() === '') continue;
     try {
       const obj: unknown = JSON.parse(line);
-      const parsed = EventSchema.safeParse(obj);
+      const parsed = RawEventSchema.safeParse(obj);
       if (parsed.success) {
-        store.add(parsed.data);
+        const displayEvents = normalize(parsed.data, sourcePath);
+        for (const ev of displayEvents) {
+          store.add(ev);
+        }
       } else {
         store.add(
           unavailable(
@@ -127,7 +124,6 @@ function parseJsonl(data: Uint8Array, sourcePath: string, store: EventStore): vo
         );
       }
     } catch (e) {
-      // JSON.parse always throws Error
       const message = (e as Error).message;
       store.add(
         unavailable(
@@ -150,7 +146,6 @@ function parseMetadata(
     if (parsed.success) return parsed.data;
     return unavailable(`invalid metadata: ${parsed.error.message}`, path);
   } catch (e) {
-    // JSON.parse always throws Error
     const message = (e as Error).message;
     return unavailable(
       `malformed metadata json: ${message}`,

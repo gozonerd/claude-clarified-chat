@@ -1,182 +1,155 @@
 import { describe, it, expect } from 'vitest';
 import { MetadataSchema } from './metadata';
+import {
+  loadRealExportMetadata,
+  realExportFixturesPresent,
+} from '../__fixtures__/loadRealExport';
 
-describe('MetadataSchema', () => {
-  it('parses valid metadata', () => {
-    const data = {
-      session_id: 'sess-1',
-      cli_session_id: 'cli-sess-1',
-      cwd: '/home/user',
-      model: 'claude-opus',
-      created_at: '2026-04-22T12:00:00Z',
-      last_activity_at: '2026-04-22T13:00:00Z',
-      title: 'Test Session',
-    };
-    const result = MetadataSchema.safeParse(data);
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.session_id).toBe('sess-1');
-      expect(result.data.model).toBe('claude-opus');
-    }
+const fixturesPresent = realExportFixturesPresent();
+
+describe('MetadataSchema — empirical Claude Desktop shape', () => {
+  const fixtures = [
+    'export-small-1776882591631',
+    'export-mid-1777064512813',
+    'export-large-1777095820500',
+  ] as const;
+
+  for (const name of fixtures) {
+    it.runIf(fixturesPresent)(`accepts the metadata.json from ${name}`, () => {
+      const obj = loadRealExportMetadata(name);
+      const r = MetadataSchema.safeParse(obj);
+      if (!r.success) throw new Error(r.error.message);
+      expect(r.data.sessionId.length).toBeGreaterThan(0);
+      expect(r.data.cliSessionId.length).toBeGreaterThan(0);
+      expect(typeof r.data.createdAt).toBe('number');
+      expect(typeof r.data.lastActivityAt).toBe('number');
+      expect(r.data.title.length).toBeGreaterThan(0);
+    });
+  }
+
+  describe('required fields', () => {
+    it('rejects missing sessionId', () => {
+      const r = MetadataSchema.safeParse({
+        cliSessionId: 'cli',
+        cwd: '/x',
+        model: 'm',
+        createdAt: 1,
+        lastActivityAt: 2,
+        title: 't',
+      });
+      expect(r.success).toBe(false);
+    });
+
+    it('rejects empty sessionId', () => {
+      const r = MetadataSchema.safeParse({
+        sessionId: '',
+        cliSessionId: 'cli',
+        cwd: '/x',
+        model: 'm',
+        createdAt: 1,
+        lastActivityAt: 2,
+        title: 't',
+      });
+      expect(r.success).toBe(false);
+    });
+
+    it('rejects empty model', () => {
+      const r = MetadataSchema.safeParse({
+        sessionId: 's',
+        cliSessionId: 'cli',
+        cwd: '/x',
+        model: '',
+        createdAt: 1,
+        lastActivityAt: 2,
+        title: 't',
+      });
+      expect(r.success).toBe(false);
+    });
   });
 
-  it('parses metadata with total_input_tokens', () => {
-    const data = {
-      session_id: 'sess-2',
-      cli_session_id: 'cli-sess-2',
-      cwd: '/home/user',
-      model: 'claude-opus',
-      created_at: '2026-04-22T12:00:00Z',
-      last_activity_at: '2026-04-22T13:00:00Z',
-      title: 'Test Session',
-      total_input_tokens: 1000,
-    };
-    const result = MetadataSchema.safeParse(data);
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.total_input_tokens).toBe(1000);
-    }
+  describe('numeric type discipline', () => {
+    it('rejects createdAt as ISO string (real exports use epoch ms numbers)', () => {
+      const r = MetadataSchema.safeParse({
+        sessionId: 's',
+        cliSessionId: 'cli',
+        cwd: '/x',
+        model: 'm',
+        createdAt: '2026-04-25T00:00:00Z',
+        lastActivityAt: 2,
+        title: 't',
+      });
+      expect(r.success).toBe(false);
+    });
+
+    it('rejects negative createdAt', () => {
+      const r = MetadataSchema.safeParse({
+        sessionId: 's',
+        cliSessionId: 'cli',
+        cwd: '/x',
+        model: 'm',
+        createdAt: -1,
+        lastActivityAt: 2,
+        title: 't',
+      });
+      expect(r.success).toBe(false);
+    });
+
+    it('accepts zero timestamps', () => {
+      const r = MetadataSchema.safeParse({
+        sessionId: 's',
+        cliSessionId: 'cli',
+        cwd: '/x',
+        model: 'm',
+        createdAt: 0,
+        lastActivityAt: 0,
+        title: 't',
+      });
+      expect(r.success).toBe(true);
+    });
   });
 
-  it('parses metadata with total_output_tokens', () => {
-    const data = {
-      session_id: 'sess-3',
-      cli_session_id: 'cli-sess-3',
-      cwd: '/home/user',
-      model: 'claude-opus',
-      created_at: '2026-04-22T12:00:00Z',
-      last_activity_at: '2026-04-22T13:00:00Z',
-      title: 'Test Session',
-      total_output_tokens: 500,
-    };
-    const result = MetadataSchema.safeParse(data);
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.total_output_tokens).toBe(500);
-    }
+  describe('forward-compat passthrough', () => {
+    it('preserves unknown fields', () => {
+      const r = MetadataSchema.safeParse({
+        sessionId: 's',
+        cliSessionId: 'cli',
+        cwd: '/x',
+        model: 'm',
+        createdAt: 1,
+        lastActivityAt: 2,
+        title: 't',
+        someNewField: 'preserved',
+      });
+      expect(r.success).toBe(true);
+    });
   });
 
-  it('parses metadata with both token fields', () => {
-    const data = {
-      session_id: 'sess-4',
-      cli_session_id: 'cli-sess-4',
-      cwd: '/home/user',
-      model: 'claude-opus',
-      created_at: '2026-04-22T12:00:00Z',
-      last_activity_at: '2026-04-22T13:00:00Z',
-      title: 'Test Session',
-      total_input_tokens: 1500,
-      total_output_tokens: 750,
-    };
-    const result = MetadataSchema.safeParse(data);
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.total_input_tokens).toBe(1500);
-      expect(result.data.total_output_tokens).toBe(750);
-    }
-  });
+  describe('optional fields', () => {
+    it('accepts metadata with no optional fields', () => {
+      const r = MetadataSchema.safeParse({
+        sessionId: 's',
+        cliSessionId: 'cli',
+        cwd: '/x',
+        model: 'm',
+        createdAt: 1,
+        lastActivityAt: 2,
+        title: 't',
+      });
+      expect(r.success).toBe(true);
+    });
 
-  it('handles optional tokens when absent', () => {
-    const data = {
-      session_id: 'sess-5',
-      cli_session_id: 'cli-sess-5',
-      cwd: '/home/user',
-      model: 'claude-opus',
-      created_at: '2026-04-22T12:00:00Z',
-      last_activity_at: '2026-04-22T13:00:00Z',
-      title: 'Test Session',
-    };
-    const result = MetadataSchema.safeParse(data);
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.total_input_tokens).toBeUndefined();
-      expect(result.data.total_output_tokens).toBeUndefined();
-    }
-  });
-
-  it('rejects missing session_id', () => {
-    const data = {
-      cli_session_id: 'cli-sess-6',
-      cwd: '/home/user',
-      model: 'claude-opus',
-      created_at: '2026-04-22T12:00:00Z',
-      last_activity_at: '2026-04-22T13:00:00Z',
-      title: 'Test Session',
-    };
-    const result = MetadataSchema.safeParse(data);
-    expect(result.success).toBe(false);
-  });
-
-  it('rejects empty session_id', () => {
-    const data = {
-      session_id: '',
-      cli_session_id: 'cli-sess-7',
-      cwd: '/home/user',
-      model: 'claude-opus',
-      created_at: '2026-04-22T12:00:00Z',
-      last_activity_at: '2026-04-22T13:00:00Z',
-      title: 'Test Session',
-    };
-    const result = MetadataSchema.safeParse(data);
-    expect(result.success).toBe(false);
-  });
-
-  it('rejects empty model', () => {
-    const data = {
-      session_id: 'sess-8',
-      cli_session_id: 'cli-sess-8',
-      cwd: '/home/user',
-      model: '',
-      created_at: '2026-04-22T12:00:00Z',
-      last_activity_at: '2026-04-22T13:00:00Z',
-      title: 'Test Session',
-    };
-    const result = MetadataSchema.safeParse(data);
-    expect(result.success).toBe(false);
-  });
-
-  it('rejects invalid created_at datetime', () => {
-    const data = {
-      session_id: 'sess-9',
-      cli_session_id: 'cli-sess-9',
-      cwd: '/home/user',
-      model: 'claude-opus',
-      created_at: 'not-a-date',
-      last_activity_at: '2026-04-22T13:00:00Z',
-      title: 'Test Session',
-    };
-    const result = MetadataSchema.safeParse(data);
-    expect(result.success).toBe(false);
-  });
-
-  it('rejects negative total_input_tokens', () => {
-    const data = {
-      session_id: 'sess-10',
-      cli_session_id: 'cli-sess-10',
-      cwd: '/home/user',
-      model: 'claude-opus',
-      created_at: '2026-04-22T12:00:00Z',
-      last_activity_at: '2026-04-22T13:00:00Z',
-      title: 'Test Session',
-      total_input_tokens: -100,
-    };
-    const result = MetadataSchema.safeParse(data);
-    expect(result.success).toBe(false);
-  });
-
-  it('accepts zero token values', () => {
-    const data = {
-      session_id: 'sess-11',
-      cli_session_id: 'cli-sess-11',
-      cwd: '/home/user',
-      model: 'claude-opus',
-      created_at: '2026-04-22T12:00:00Z',
-      last_activity_at: '2026-04-22T13:00:00Z',
-      title: 'Test Session',
-      total_input_tokens: 0,
-      total_output_tokens: 0,
-    };
-    const result = MetadataSchema.safeParse(data);
-    expect(result.success).toBe(true);
+    it('accepts isArchived boolean', () => {
+      const r = MetadataSchema.safeParse({
+        sessionId: 's',
+        cliSessionId: 'cli',
+        cwd: '/x',
+        model: 'm',
+        createdAt: 1,
+        lastActivityAt: 2,
+        title: 't',
+        isArchived: false,
+      });
+      expect(r.success).toBe(true);
+    });
   });
 });

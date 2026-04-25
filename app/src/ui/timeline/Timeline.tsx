@@ -48,6 +48,10 @@ export function Timeline({ items, onSelect }: TimelineProps): ReactElement {
             <option value="tool_result">tool_result</option>
             <option value="thinking">thinking</option>
             <option value="system">system</option>
+            <option value="queue-operation">queue-operation</option>
+            <option value="last-prompt">last-prompt</option>
+            <option value="custom-title">custom-title</option>
+            <option value="attachment">attachment</option>
             <option value="log">log</option>
             <option value="unavailable">unavailable</option>
           </select>

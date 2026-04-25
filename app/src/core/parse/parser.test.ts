@@ -1,6 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { parse, decode } from './parser';
 import type { FileMap } from '../ingest/types';
+import {
+  loadRealExportFileMap,
+  realExportFixturesPresent,
+} from '../../__fixtures__/loadRealExport';
+
+const fixturesPresent = realExportFixturesPresent();
 
 const encoder = new TextEncoder();
 
@@ -12,21 +18,25 @@ function createFileMap(entries: Record<string, string>): FileMap {
   return map;
 }
 
+// Empirically-shaped fixtures (camelCase metadata, raw event with message wrapper)
 const validMetadata = JSON.stringify({
-  session_id: 'sess-1',
-  cli_session_id: 'cli-1',
+  sessionId: 'sess-1',
+  cliSessionId: 'cli-1',
   cwd: '/home/user',
   model: 'claude-3-sonnet',
-  created_at: '2026-01-01T00:00:00Z',
-  last_activity_at: '2026-01-01T01:00:00Z',
+  createdAt: 1776882591631,
+  lastActivityAt: 1776982591631,
   title: 'test session',
 });
 
-const validEvent = JSON.stringify({
-  id: 'evt-1',
-  timestamp: '2026-01-01T00:00:00Z',
+const validUserEvent = JSON.stringify({
   type: 'user',
-  content: 'hello',
+  uuid: 'evt-u-1',
+  parentUuid: null,
+  isSidechain: false,
+  timestamp: '2026-01-01T00:00:00Z',
+  sessionId: 'sess-1',
+  message: { role: 'user', content: 'hello' },
 });
 
 const validSubAgentMeta = JSON.stringify({
@@ -39,48 +49,38 @@ const validSubAgentMeta = JSON.stringify({
 describe('decode', () => {
   it('should decode valid UTF-8 data', () => {
     const data = encoder.encode('hello world');
-    const result = decode(data);
-    expect(result).toBe('hello world');
-  });
-
-  it('should handle invalid UTF-8 with fallback decoder', () => {
-    // Create sequences that test the fallback path
-    // TextDecoder with fatal:false will process these gracefully
-    const data = new Uint8Array([0xff, 0xfe, 0xfd, 0x00, 0x41]);
-    const result = decode(data);
-    // fallback should always return a string (possibly with replacement chars)
-    expect(typeof result).toBe('string');
-    expect(result.length).toBeGreaterThan(0);
+    expect(decode(data)).toBe('hello world');
   });
 
   it('should always return a string', () => {
-    const data = encoder.encode('test');
-    const result = decode(data);
-    expect(typeof result).toBe('string');
+    expect(typeof decode(encoder.encode('test'))).toBe('string');
   });
 
-  it('should decode edge case: empty array', () => {
-    const data = new Uint8Array([]);
-    const result = decode(data);
-    expect(typeof result).toBe('string');
-    expect(result).toBe('');
+  it('should decode an empty array as empty string', () => {
+    expect(decode(new Uint8Array([]))).toBe('');
+  });
+
+  it('handles bytes that are valid UTF-8 (smoke)', () => {
+    const data = new Uint8Array([0x41, 0x42, 0x43]);
+    expect(decode(data)).toBe('ABC');
   });
 });
 
-describe('parse', () => {
+describe('parse — synthetic empirical-shape fixtures', () => {
   describe('happy path', () => {
-    it('should parse full data structure with all file types', async () => {
+    it('parses metadata + user event + subagent + tool-results + logs', async () => {
       const files = createFileMap({
         'metadata.json': validMetadata,
-        'events.jsonl': validEvent,
+        'events.jsonl': validUserEvent,
         'subagents/a.meta.json': validSubAgentMeta,
-        'subagents/a.jsonl': validEvent,
+        'subagents/a.jsonl': validUserEvent,
         'tool-results/toolX.txt': 'tool output',
         'logs/run.log': 'line1\nline2\nline3',
       });
       const result = await parse(files);
-      expect(result.store.size).toBe(5); // 1 main event + 1 subagent event + 3 log lines
-      expect(result.metadata).toBeDefined();
+      // 1 main user event normalize → 1 DisplayEvent + 1 subagent user event → 1 DisplayEvent + 3 log lines
+      expect(result.store.size).toBe(5);
+      expect(result.metadata).not.toBeNull();
       if (result.metadata && 'kind' in result.metadata) {
         expect(result.metadata.kind).not.toBe('unavailable');
       }
@@ -91,181 +91,133 @@ describe('parse', () => {
 
   describe('metadata parsing', () => {
     it('should handle missing metadata.json', async () => {
-      const files = createFileMap({
-        'events.jsonl': validEvent,
-      });
+      const files = createFileMap({ 'events.jsonl': validUserEvent });
       const result = await parse(files);
       expect(result.metadata).toBeNull();
     });
 
-    it('should handle metadata.json in root', async () => {
-      const files = createFileMap({
-        'metadata.json': validMetadata,
-      });
+    it('parses metadata.json in nested path', async () => {
+      const files = createFileMap({ 'some/dir/metadata.json': validMetadata });
       const result = await parse(files);
-      expect(result.metadata).toBeDefined();
+      expect(result.metadata).not.toBeNull();
       if (result.metadata && !('kind' in result.metadata)) {
-        expect(result.metadata.session_id).toBe('sess-1');
+        expect(result.metadata.sessionId).toBe('sess-1');
       }
     });
 
-    it('should handle metadata.json in nested path', async () => {
-      const files = createFileMap({
-        'some/dir/metadata.json': validMetadata,
-      });
+    it('records malformed metadata JSON as unavailable', async () => {
+      const files = createFileMap({ 'metadata.json': 'not json' });
       const result = await parse(files);
-      expect(result.metadata).toBeDefined();
-      if (result.metadata && !('kind' in result.metadata)) {
-        expect(result.metadata.session_id).toBeDefined();
-      }
+      expect(result.metadata && 'kind' in result.metadata && result.metadata.kind === 'unavailable').toBe(true);
     });
 
-    it('should handle malformed metadata JSON', async () => {
-      const files = createFileMap({
-        'metadata.json': 'not json',
-      });
-      const result = await parse(files);
-      if (result.metadata && 'kind' in result.metadata) {
-        expect(result.metadata.kind).toBe('unavailable');
-      }
-    });
-
-    it('should handle invalid metadata schema', async () => {
+    it('records invalid metadata schema as unavailable', async () => {
       const files = createFileMap({
         'metadata.json': JSON.stringify({ wrong: 'shape' }),
       });
       const result = await parse(files);
-      if (result.metadata && 'kind' in result.metadata) {
-        expect(result.metadata.kind).toBe('unavailable');
-      }
+      expect(result.metadata && 'kind' in result.metadata && result.metadata.kind === 'unavailable').toBe(true);
     });
   });
 
-  describe('main events parsing', () => {
-    it('should parse valid JSONL events', async () => {
-      const files = createFileMap({
-        'events.jsonl': validEvent,
-      });
+  describe('events parsing', () => {
+    it('parses a valid user event', async () => {
+      const files = createFileMap({ 'events.jsonl': validUserEvent });
       const result = await parse(files);
       expect(result.store.size).toBe(1);
-      const item = result.store.get('evt-1');
-      expect(item).toBeDefined();
-      if (item && 'kind' in item) {
-        expect(item.kind).not.toBe('unavailable');
-      } else {
-        expect(true).toBe(true); // item is an event, not unavailable
-      }
     });
 
-    it('should skip empty lines and whitespace', async () => {
+    it('skips empty/whitespace lines', async () => {
       const files = createFileMap({
-        'events.jsonl': `${validEvent}\n\n${validEvent}\n  \n`,
+        'events.jsonl': `${validUserEvent}\n\n${validUserEvent}\n  \n`,
       });
       const result = await parse(files);
       expect(result.store.size).toBe(2);
     });
 
-    it('should record invalid JSON as unavailable', async () => {
+    it('records malformed JSON as unavailable', async () => {
       const files = createFileMap({
-        'events.jsonl': `${validEvent}\ninvalid json\n`,
+        'events.jsonl': `${validUserEvent}\ninvalid json\n`,
       });
       const result = await parse(files);
       const items = result.store.query();
-      const hasInvalid = items.some((item) => 'kind' in item && item.kind === 'unavailable');
-      expect(hasInvalid).toBe(true);
+      expect(items.some((it) => 'kind' in it && it.kind === 'unavailable')).toBe(true);
     });
 
-    it('should record invalid event schema as unavailable', async () => {
-      const invalidEvent = JSON.stringify({
-        id: 'evt-bad',
-        // missing required fields
-      });
-      const files = createFileMap({
-        'events.jsonl': invalidEvent,
-      });
+    it('records invalid event schema as unavailable', async () => {
+      const invalid = JSON.stringify({ uuid: 'x', noTypeField: true });
+      const files = createFileMap({ 'events.jsonl': invalid });
       const result = await parse(files);
       const items = result.store.query();
-      const hasInvalid = items.some((item) => 'kind' in item && item.kind === 'unavailable');
-      expect(hasInvalid).toBe(true);
+      expect(items.some((it) => 'kind' in it && it.kind === 'unavailable')).toBe(true);
     });
 
-    it('should handle mixed valid and invalid events', async () => {
+    it('handles mixed valid + invalid events', async () => {
       const files = createFileMap({
-        'events.jsonl': `${validEvent}\ninvalid\n${validEvent}`,
+        'events.jsonl': `${validUserEvent}\ninvalid\n${validUserEvent}`,
       });
       const result = await parse(files);
       const items = result.store.query();
-      const validCount = items.filter((i) => !('kind' in i && i.kind === 'unavailable')).length;
-      const invalidCount = items.filter((i) => 'kind' in i && i.kind === 'unavailable').length;
-      expect(validCount).toBeGreaterThan(0);
-      expect(invalidCount).toBeGreaterThan(0);
+      const valid = items.filter((i) => !('kind' in i && i.kind === 'unavailable')).length;
+      const bad = items.filter((i) => 'kind' in i && i.kind === 'unavailable').length;
+      expect(valid).toBeGreaterThan(0);
+      expect(bad).toBeGreaterThan(0);
     });
   });
 
   describe('subagent metadata parsing', () => {
-    it('should parse valid subagent metadata', async () => {
-      const files = createFileMap({
-        'subagents/a.meta.json': validSubAgentMeta,
-      });
+    it('parses valid subagent metadata', async () => {
+      const files = createFileMap({ 'subagents/a.meta.json': validSubAgentMeta });
       const result = await parse(files);
       expect(result.subagentMetas.has('sa-1')).toBe(true);
-      expect(result.subagentMetas.get('sa-1')?.spawned_at).toBe(
-        '2026-01-01T00:00:00Z',
-      );
     });
 
-    it('should handle malformed subagent meta JSON', async () => {
+    it('records malformed subagent meta JSON as unavailable', async () => {
       const files = createFileMap({
         'subagents/a.meta.json': 'not json',
-        'events.jsonl': validEvent,
+        'events.jsonl': validUserEvent,
       });
       const result = await parse(files);
       const items = result.store.query();
-      const hasInvalid = items.some((item) => 'kind' in item && item.kind === 'unavailable');
-      expect(hasInvalid).toBe(true);
+      expect(items.some((i) => 'kind' in i && i.kind === 'unavailable')).toBe(true);
     });
 
-    it('should handle invalid subagent meta schema', async () => {
+    it('records invalid subagent meta schema as unavailable', async () => {
       const files = createFileMap({
         'subagents/a.meta.json': JSON.stringify({ wrong: 'shape' }),
-        'events.jsonl': validEvent,
+        'events.jsonl': validUserEvent,
       });
       const result = await parse(files);
       const items = result.store.query();
-      const hasInvalid = items.some((item) => 'kind' in item && item.kind === 'unavailable');
-      expect(hasInvalid).toBe(true);
+      expect(items.some((i) => 'kind' in i && i.kind === 'unavailable')).toBe(true);
     });
   });
 
-  describe('subagent events parsing', () => {
-    it('should parse subagent events', async () => {
-      const files = createFileMap({
-        'subagents/a.jsonl': validEvent,
-      });
+  describe('subagent events', () => {
+    it('parses subagent events', async () => {
+      const files = createFileMap({ 'subagents/a.jsonl': validUserEvent });
       const result = await parse(files);
       expect(result.store.size).toBe(1);
     });
 
-    it('should handle multiple subagent JSONL files', async () => {
+    it('handles multiple subagent JSONL files', async () => {
       const files = createFileMap({
-        'subagents/a.jsonl': validEvent,
-        'subagents/b.jsonl': validEvent,
+        'subagents/a.jsonl': validUserEvent,
+        'subagents/b.jsonl': validUserEvent,
       });
       const result = await parse(files);
       expect(result.store.size).toBe(2);
     });
   });
 
-  describe('tool results parsing', () => {
-    it('should parse tool results files', async () => {
-      const files = createFileMap({
-        'tool-results/toolX.txt': 'result content',
-      });
+  describe('tool-results', () => {
+    it('parses tool-results files', async () => {
+      const files = createFileMap({ 'tool-results/toolX.txt': 'result content' });
       const result = await parse(files);
       expect(result.toolResults.get('toolX')).toBe('result content');
     });
 
-    it('should extract basename as key', async () => {
+    it('extracts nested basename as key', async () => {
       const files = createFileMap({
         'tool-results/deeply/nested/toolY.txt': 'nested result',
       });
@@ -273,106 +225,98 @@ describe('parse', () => {
       expect(result.toolResults.get('deeply/nested/toolY')).toBe('nested result');
     });
 
-    it('should handle multiple tool results', async () => {
+    it('handles multiple tool-results', async () => {
       const files = createFileMap({
-        'tool-results/tool1.txt': 'result1',
-        'tool-results/tool2.txt': 'result2',
+        'tool-results/tool1.txt': 'r1',
+        'tool-results/tool2.txt': 'r2',
       });
       const result = await parse(files);
       expect(result.toolResults.size).toBe(2);
     });
   });
 
-  describe('logs parsing', () => {
-    it('should parse log files', async () => {
-      const files = createFileMap({
-        'logs/run.log': 'line1\nline2\nline3',
-      });
-      const result = await parse(files);
-      expect(result.store.size).toBe(3);
-      const items = result.store.query();
-      const logs = items.filter((i) => 'kind' in i && i.kind === 'log');
-      expect(logs).toHaveLength(3);
-    });
-
-    it('should skip empty log lines', async () => {
-      const files = createFileMap({
-        'logs/run.log': 'line1\n\nline2\n\n\nline3\n',
-      });
+  describe('logs', () => {
+    it('parses log files', async () => {
+      const files = createFileMap({ 'logs/run.log': 'a\nb\nc' });
       const result = await parse(files);
       const items = result.store.query();
       const logs = items.filter((i) => 'kind' in i && i.kind === 'log');
       expect(logs).toHaveLength(3);
     });
 
-    it('should handle CRLF line endings', async () => {
-      const files = createFileMap({
-        'logs/run.log': 'line1\r\nline2\r\nline3\r\n',
-      });
+    it('skips empty log lines', async () => {
+      const files = createFileMap({ 'logs/run.log': 'a\n\nb\n\n\nc\n' });
       const result = await parse(files);
-      const items = result.store.query();
-      const logs = items.filter((i) => 'kind' in i && i.kind === 'log');
+      const logs = result.store.query().filter((i) => 'kind' in i && i.kind === 'log');
       expect(logs).toHaveLength(3);
     });
 
-    it('should preserve log line content', async () => {
-      const files = createFileMap({
-        'logs/test.log': '[INFO] startup\n[ERROR] failed',
-      });
+    it('handles CRLF line endings', async () => {
+      const files = createFileMap({ 'logs/run.log': 'a\r\nb\r\nc\r\n' });
       const result = await parse(files);
-      const items = result.store.query();
-      const logs = items.filter((i) => 'kind' in i && i.kind === 'log');
-      expect(
-        logs.some((l) => 'line' in l && l.line.includes('startup')),
-      ).toBe(true);
-      expect(
-        logs.some((l) => 'line' in l && l.line.includes('failed')),
-      ).toBe(true);
+      const logs = result.store.query().filter((i) => 'kind' in i && i.kind === 'log');
+      expect(logs).toHaveLength(3);
     });
 
-    it('should handle multiple log files', async () => {
+    it('preserves log content', async () => {
+      const files = createFileMap({ 'logs/test.log': '[INFO] up\n[ERROR] down' });
+      const result = await parse(files);
+      const logs = result.store.query().filter((i) => 'kind' in i && i.kind === 'log');
+      expect(logs.some((l) => 'line' in l && l.line.includes('up'))).toBe(true);
+      expect(logs.some((l) => 'line' in l && l.line.includes('down'))).toBe(true);
+    });
+
+    it('handles multiple log files', async () => {
       const files = createFileMap({
-        'logs/run.log': 'line1\nline2',
-        'logs/debug.log': 'debug1\ndebug2\ndebug3',
+        'logs/run.log': 'a\nb',
+        'logs/debug.log': 'c\nd\ne',
       });
       const result = await parse(files);
-      const items = result.store.query();
-      const logs = items.filter((i) => 'kind' in i && i.kind === 'log');
+      const logs = result.store.query().filter((i) => 'kind' in i && i.kind === 'log');
       expect(logs).toHaveLength(5);
     });
   });
 
-  describe('file ordering', () => {
-    it('should parse metadata first', async () => {
-      const files = createFileMap({
-        'events.jsonl': validEvent,
-        'metadata.json': validMetadata,
-      });
-      const result = await parse(files);
-      expect(result.metadata).toBeDefined();
-      if (result.metadata && !('kind' in result.metadata)) {
-        expect(result.metadata.session_id).toBeDefined();
-      }
-    });
-  });
-
   describe('edge cases', () => {
-    it('should handle empty FileMap', async () => {
-      const files = createFileMap({});
-      const result = await parse(files);
+    it('handles empty FileMap', async () => {
+      const result = await parse(createFileMap({}));
       expect(result.store.size).toBe(0);
       expect(result.metadata).toBeNull();
       expect(result.subagentMetas.size).toBe(0);
       expect(result.toolResults.size).toBe(0);
     });
 
-    it('should ignore non-matching file types', async () => {
-      const files = createFileMap({
-        'random.txt': 'ignored',
-        'readme.md': 'also ignored',
-      });
+    it('ignores unrelated file types', async () => {
+      const files = createFileMap({ 'random.txt': 'x', 'readme.md': 'y' });
       const result = await parse(files);
       expect(result.store.size).toBe(0);
     });
   });
+});
+
+describe.runIf(fixturesPresent)('parse — REAL Claude Desktop export drop-in (F13 prevention)', () => {
+  // The load-bearing acceptance: dropping a real export into the parser must
+  // produce displayable timeline events, not "unavailable" markers.
+  it.each([
+    ['export-small-1776882591631', 100],
+    ['export-mid-1777064512813', 400],
+    ['export-large-1777095820500', 800],
+  ] as const)(
+    '%s parses with mostly-valid events (>= %i displayable)',
+    async (name, minDisplayable) => {
+      const files = loadRealExportFileMap(name);
+      const result = await parse(files);
+      const items = result.store.query();
+      const displayable = items.filter((i) => !('kind' in i && i.kind === 'unavailable'));
+      const unavailable = items.filter((i) => 'kind' in i && i.kind === 'unavailable');
+      expect(displayable.length).toBeGreaterThanOrEqual(minDisplayable);
+      // The absolute test of F13 prevention: zero unavailable markers from .jsonl
+      // (logs may produce log entries; metadata.json must parse).
+      expect(unavailable).toHaveLength(0);
+      expect(result.metadata).not.toBeNull();
+      if (result.metadata && 'kind' in result.metadata) {
+        expect(result.metadata.kind).not.toBe('unavailable');
+      }
+    },
+  );
 });

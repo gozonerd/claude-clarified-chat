@@ -81,6 +81,7 @@ describe('onlyEvents unit tests', () => {
     ] as any;
     const result = onlyEvents(items);
     expect(result).toHaveLength(1);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     expect((result[0] as any)?.id).toBe('e1');
   });
 
@@ -91,7 +92,9 @@ describe('onlyEvents unit tests', () => {
     ] as any;
     const result = onlyEvents(items);
     expect(result).toHaveLength(2);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     expect((result[0] as any)?.id).toBe('e1');
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     expect((result[1] as any)?.id).toBe('e2');
   });
 

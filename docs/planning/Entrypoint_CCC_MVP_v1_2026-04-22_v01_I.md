@@ -5,6 +5,8 @@ version: v01_I
 created: 2026-04-22
 based_on: _experiments/protocols/Hardened_Build_Entrypoint_Template_2026-04-22_v01_I.md v01_I
 distribution: INTERNAL (paste into Claude Desktop Max 20 chat)
+audience: martinez_methods_internal
+classification_reason: INTERNAL _I classification per Martinez Methods classification convention; not approved for external release pending pre-publication IP scrub.
 ---
 
 # Claude Clarified Chat MVP v1.0 — Build Entrypoint

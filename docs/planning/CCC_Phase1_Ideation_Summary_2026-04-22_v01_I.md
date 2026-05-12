@@ -6,6 +6,8 @@ date: 2026-04-22
 version: v01_I
 phase: /ideate-to-d2r-ready Phase 1 (Ideation Interrogation)
 status: Passed — ready for Phase 2 authorship
+audience: martinez_methods_internal
+classification_reason: INTERNAL _I classification per Martinez Methods classification convention; not approved for external release pending pre-publication IP scrub.
 ---
 
 # Phase 1 Ideation Summary — Claude Clarified Chat

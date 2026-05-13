@@ -1,6 +1,6 @@
 ---
 name: reinforced-fenced-block
-description: "Use this skill when presenting formatted content that contains markdown, code blocks, or nested formatting that would break a standard fenced code block. Triggers on: 'reinforced fenced block', 'reinforced block', 'safe fenced block', 'nest-safe block', or when Claude needs to present content containing backtick fences without breaking the outer container. Uses 12 tilde (~) characters as the outer fence with backticks for inner nesting."
+description: "Use this skill when presenting formatted content that contains markdown, code blocks, or nested formatting that would break a standard fenced code block. Uses 12 tilde (~) characters as the outer fence with backticks for inner nesting. Triggers on: 'reinforced fenced block', 'reinforced block', 'safe fenced block', 'nest-safe block', 'reinforced fence', 'reinforced code block', '12-tilde fence', '12 tildes', 'twelve tildes', 'outer fence', 'wrap this for me to paste', 'make this relay-ready', 'format for paste-through', 'give me X i can copy and paste', 'for relay to another claude', 'for the sib thread', 'paste-safe', 'so the formatting doesn't break', 'in a code block that won't break', or when Claude needs to present content containing backtick fences without breaking the outer container."
 ---
 
 # Reinforced Fenced Block

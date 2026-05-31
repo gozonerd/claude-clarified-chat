@@ -1,23 +1,24 @@
 ---
 name: asae
-version: v07.1
+version: v08
 audience: martinez_methods_internal
 classification: INTERNAL ONLY
 classification_reason: Methodology IP surface; audit-gate authoring spec for Martinez Methods internal use only.
 description: "Use this skill when a caller needs a convergence gate run on an output artifact against original sources and a specification. Triggers on: '/asae', 'asae', 'asae gate', 'run asae', 'asae on this', 'audit this against sources', 'convergence gate', or when a parent skill (e.g., /dare-to-rise-code-plan) invokes ASAE at a stage boundary. Takes a scope definition (target, sources, prompt, domain, ASAE Certainty Threshold, severity policy). Runs iterative comparison passes with severity-classified findings. Exits when the configured ASAE Certainty Threshold is reached or halts on max-iteration exceeded. Produces a versioned audit log."
 ---
 
-# ASAE (v07.1)
+# ASAE (v08)
 
-## v07 lineage
+## v08 lineage
 
 - v04 added Tier 1c (Independent Rater attestation, FM closure for single-persona-audit blind spots)
 - v05 added Aspects A9-A13 via frontmatter blocks (`persona_role_manifest:`, `session_chain:`, `disclosures:`, `inputs_processed:`, `step_re_execution:`) with hook Tiers 1c-ext, 4-ext, 5, 6
 - v06 absorbed Aspects A14-A20 from the gate-49 multi-taxonomy scoreboard (7 new prevention-axis aspects covering 168 FMs across 7 taxonomies) AND Aspect A21 — Detect-Revert-Redelegate (DRR) — from Two_Axis_Commercial_Pitch_2026-04-26_v02_I (recovery axis; first published methodology that catches LLM fabrication at commit time via independent parent verification + auto-revert + redelegate cycle, hook-enforced and audit-trailed). v06 also documented A22's REJECTION (Two-Axis Pitch v02; failed ≥3-FM-per-aspect guard; folded into A18 + roadmap P3 H8).
 - v07 (predecessor) absorbed Methodology Mods Batch 1 surfaced from FAANG-principal-grade adversarial code reviews of 6 apps (orchestra, orchestra-box-office, drwrite, claudette-can-code-plugin, claude-cost, the trio = ftm-explorer + shadow-ai-assessment + governance-assessment). v07 codifies the Verification-Coverage Principle as new Section 0; adds 3 disclosures sub-blocks (compliance_claims / shipping_attestation / coverage_mutation_scope per A11.NEW-1/2/3) closing FM modes for user-facing-claim-without-verifying-test patterns; codifies Aspect 8 — Anti-Fabrication with new sub-aspect A8.2 Production-Code Stub Detection extending anti-fab from methodology-doc layer to source-code layer; extends A18 capability_scope with Sandbox-Quality-At-Stack-Selection requiring stack-rule-pack reference at TRD §6.4; adds two `/asae domain: code` checklist items (Tautology-Test Detector via banned-pattern catalog at `_grand_repo/docs/test-tautology-bans.md`; Cross-Layer Contract Verification via per-stack rule pack build-time checks). Anti-aspect-proliferation discipline preserved: no new top-level A22+ aspects; everything extends existing A8 / A11 / A18 / domain-code-checklist.
-- v07.1 (this version) absorbs Methodology Mods Batch 2 + Batch 3 Locks 3/4/7/A2-strategic finalizations: Aspect 21 sub-shape #4 (Disclosure-Inline-Remediation; P3 carve-out per Krystal arbitration 2026-04-27) hook-enforced via v07.1 Tier 29 + v09 Tier 31; Lock 4 Mod 14 convergence-counter hardening (carry-forward as counter-satisfier explicitly forbidden — see Severity Classification section); Lock 7 Mod 13 Rater-Spawn Discipline (Rule A parent-only spawn + Rule B silent-failure-as-ABSENT + `rater_authored_by_context` frontmatter field; Hook v09 Tiers 33+34 enforcement; lib script `agent_invocation_history.sh`); Lock A2 strategic structured-frontmatter `passes[]` schema (forward-going alternative to prose-pattern markers; lib script `asae_pass_renderer.sh` + Hook v09 Tier 37 enforce render-equivalence; `/asae-render` skill is user-facing entry point); META-9 frontmatter fields (`audience` + `classification_reason`) added to /asae's own frontmatter as exemplar. Hook v09 Tiers 31-37 + lib script integration (mm-claude-canonical/scripts/lib/) provide commit-time enforcement layer for Locks 3/4/7/8/9/A2 strategic. v07.1 is forward-only (gates dated 2026-04-30+); v07 prose remains authoritative for prior gates. Mod 8 sync-IO-in-async-boundary detector RESERVED for v08.
+- v07.1 absorbed Methodology Mods Batch 2 + Batch 3 Locks 3/4/7/A2-strategic finalizations: Aspect 21 sub-shape #4 (Disclosure-Inline-Remediation; P3 carve-out per Krystal arbitration 2026-04-27) hook-enforced via v07.1 Tier 29 + v09 Tier 31; Lock 4 Mod 14 convergence-counter hardening (carry-forward as counter-satisfier explicitly forbidden — see Severity Classification section); Lock 7 Mod 13 Rater-Spawn Discipline (Rule A parent-only spawn + Rule B silent-failure-as-ABSENT + `rater_authored_by_context` frontmatter field; Hook v09 Tiers 33+34 enforcement; lib script `agent_invocation_history.sh`); Lock A2 strategic structured-frontmatter `passes[]` schema (forward-going alternative to prose-pattern markers; lib script `asae_pass_renderer.sh` + Hook v09 Tier 37 enforce render-equivalence; `/asae-render` skill is user-facing entry point); META-9 frontmatter fields (`audience` + `classification_reason`) added to /asae's own frontmatter as exemplar. Hook v09 Tiers 31-37 + lib script integration (mm-claude-canonical/scripts/lib/) provide commit-time enforcement layer for Locks 3/4/7/8/9/A2 strategic. v07.1 is forward-only (gates dated 2026-04-30+); v07 prose remains authoritative for prior gates.
+- v08 (this version) absorbs **Hook v10** (Claudalisse W. Convergence Genius, mm-claude-canonical gate-86, 2026-05-28; commit `18f50d4`): the long-deferred **A14-A20 schema enforcement (hook Tiers 7-13) finally ships at refuse-level** — closing the SPECCED-but-DEFERRED gap that v06 opened and v07/v08-hook never delivered. The enforcement uses the **conditional-applicability + `domain:` gate pattern (Option B)**: each A14-A20 tier refuses only when its trigger fires, so `domain: documentation` / `methodology` gates stay low-friction while `domain: code` / agentic work gets the full battery. v08 also (a) adds **`methodology`** to the domain enum (the natural domain for ASAE/hook/methodology-doc authoring; mechanically accepted by Hook v10's Tier 7 case statement since gate-86; formally ratified here); (b) records that **Aspect 17 (Claim-Source Linkage) intentionally stays advisory** — it is a discipline aspect with no frontmatter block, so Hook v10 reserves Tier 10 but wires no check (rater-verified at Step 6); (c) records the **A18 split** — A18-main (`capability_scope:` schema) is now refuse-grade at Tier 11, while A18-ext (Sandbox-Quality-At-Stack-Selection / stack-rule-pack reference) remains advisory at Tier 19 (deferred to a future Hook v11); (d) introduces **Tier 38** (domain-vs-staged-diff consistency check; refuses `domain: documentation` when staged diff contains code files — a mechanical floor against domain mis-classification). The canonical machine-readable enforcement map is `mm-fm-taxonomy/docs/asae-aspect-reference-2026-05-31-v02.json` (gate-25; sha256 `a434adab4b253e8d1c73ba799f760cb93a44d1d2bc8a9e1e141cef2655d32492`). The anti-fabrication discipline that underwrites A8/A17 is consolidated in `mm-claude-canonical/references/anti-fabrication.md` (gate-88). v08 is forward-only (gates dated 2026-05-28+ are subject to Hook v10's A14-A20 refuse tiers); v07.1 prose remains authoritative for gates dated 2026-04-30 through 2026-05-27. Mod 8 sync-IO-in-async-boundary detector RESERVED for a future hook.
 
-**v07 hook enforcement scope (continues gate-49 deferral pattern):** Hook v07 implements **Tiers 15-20** (compliance_claims / shipping_attestation / coverage_mutation_scope / production-code-stub-detection / sandbox-quality-at-stack-selection / cross-layer-contract-resolution enforcement at refuse-level for gates dated 2026-04-27+). Hook v07 also retains Tier 14 from v06 (recovery_events). Hook Tiers 7-13 (A14-A20 schema enforcement) remain SPECCED-but-DEFERRED to v08 hook authoring; A14-A20 frontmatter blocks are advisory in v07 hook (presence not yet refused). Mod 8 Tier 21 (sync-IO detection) RESERVED for v08 hook + Batch 2 methodology gate.
+**v08 hook enforcement scope (Hook v10 — closes the gate-49/v06 deferral):** Hook v10 implements **Tiers 7-13** (A14-A20 schema enforcement) at **refuse-level** for gates dated 2026-05-28+, via Option B conditional applicability: Tier 7 (A14 `dependencies_attested:`) fires when `domain ∈ {code, methodology, research}` OR dependency-manifest files are staged; Tier 8 (A15 `output_execution_boundary:`) fires when staged diff produces executable output; Tier 9 (A16 `bias_disclosure:`) fires when `domain ∈ {code, research}` AND user-facing copy / ML-decision file patterns are present; **Tier 10 (A17) is RESERVED-but-unwired** (discipline aspect; no frontmatter block; rater-verified only); Tier 11 (A18-main `capability_scope:`) is **always-mandatory**; Tier 12 (A19 `hai_integrity:`) fires when `capability_scope.autonomy_level: high`; Tier 13 (A20 `identity_attestation:`) is **always-mandatory**. Hook v10 also adds **Tier 38** (domain-vs-staged-diff consistency). Hook v10 retains all v07 refuse tiers (15-20: compliance_claims / shipping_attestation / coverage_mutation_scope at refuse-level; A8.2 production-code-stub at Tier 18 ADVISORY; A18-ext stack-rule-pack at Tier 19 ADVISORY; cross-layer-contract at Tier 20 ADVISORY) + v09 Tiers 31-37 + v06 Tier 14 (recovery_events). **Still deferred to a future hook:** A8.2 AST-level stub detection (Tier 18 advisory→refuse), A18-ext stack-rule-pack config-parsing (Tier 19 advisory→refuse), Tier 36 fork-event refuse-promotion, Mod 8 Tier 21 sync-IO detection. See the canonical aspect-reference JSON (gate-25) for the full per-aspect enforcement map.
 
 ## Verification-Coverage Principle
 
@@ -54,7 +55,7 @@ Every invocation requires a scope definition. The caller provides:
 | `target` | Yes | Path(s) to the output artifact(s) being audited |
 | `sources` | Yes | Path(s) to the original materials the output was produced from |
 | `prompt` | Yes | Path to the original prompt or spec, or inline description |
-| `domain` | Yes | One of: `document`, `code`, `design`, `research`, `instructional_design`, `legal`, `other` |
+| `domain` | Yes | One of: `document`, `code`, `design`, `research`, `instructional_design`, `legal`, `methodology`, `other`. **`methodology`** (v08) is for ASAE/hook/methodology-doc authoring (e.g., Convergence Genius gates); it triggers Hook v10 Tier 7 (dependencies_attested) but not the code-class Tiers 8/9. **`domain` is load-bearing under Hook v10**: Tier 38 refuses `domain: documentation` when the staged diff contains code files (mechanical anti-mis-classification floor), and Tiers 7/9 condition on the domain value. If omitted, the hook defaults to `documentation` (most restrictive — triggers Tier 38 if any code is staged). |
 | `asae_certainty_threshold` | Yes | Integer (default 3). Number of consecutive passes required at the exit severity policy. |
 | `severity_policy` | Yes | `strict` or `standard` (see Severity Classification below) |
 | `max_iterations` | No | Default 10. Halt and escalate if exceeded. |
@@ -321,6 +322,70 @@ Hook v07 Tier 13 (deferred): presence + primary_persona 4-sub-field + acted_as_h
 Proposed in Two-Axis Pitch v01 as standalone aspect; failed ≥3-FM-per-aspect anti-proliferation guard per FM thread rater verification 2026-04-26 (triple-counted FMs already closed by A18+A20+A21; OWASP LLM06.4 citation does not exist; NIST AML F10 was internal family code conflated with NIST canonical ID; MS-RT-AN3 mismapped). Path-level scope folded into A18's `capability_scope.paths_written` + `scope_diff_check.matches_role_manifest_paths` above. Runtime enforcement implemented via roadmap P3 (CDCC H8 Capability-Scope Runtime Enforcer). No new aspect ships.
 
 The rejection is anti-proliferation discipline working as intended (same discipline that rejected A21-A24 candidates in gate-49 Phase 4). Documented here so downstream readers do not re-propose A22.
+
+### Worked example — A14-A20 enforced frontmatter under Hook v10 (v08)
+
+Hook v10 (gate-86) ships A14-A20 at refuse-level via conditional applicability. The schemas above describe each block; this is a worked example showing which blocks a real gate needs given its trigger profile. The canonical exemplar is gate-86's own audit log (`mm-claude-canonical/deprecated/asae-logs/gate-86-hook-v10-conditional-enforcement-a14-a20-2026-05-28.md`) — a `domain: methodology` gate with `autonomy_level: high`.
+
+**Which blocks does my gate need?** Resolve by trigger:
+
+| If your gate… | …then these A14-A20 blocks are REQUIRED (refuse if absent) |
+|---|---|
+| `domain: documentation`, stages only `.md`/`.json`, autonomy low/medium | `capability_scope:` (Tier 11, always) + `identity_attestation:` (Tier 13, always). Nothing else fires. |
+| `domain: methodology` (e.g., ASAE/hook authoring), autonomy high | + `dependencies_attested:` (Tier 7, domain trigger) + `hai_integrity:` (Tier 12, autonomy=high). |
+| `domain: code`, stages source files | + `dependencies_attested:` (Tier 7) + `output_execution_boundary:` (Tier 8, executable output) + (if user-facing copy / ML-decision code) `bias_disclosure:` (Tier 9). |
+| any gate whose staged diff has code but you declared `domain: documentation` | **REFUSED by Tier 38** — change `domain:` to match the staged work, or unstage the incidental code. |
+
+**Always-mandatory at v10 (every gate, regardless of trigger):** `capability_scope:` (A18-main, Tier 11) + `identity_attestation:` (A20, Tier 13).
+
+**Minimal v10-compliant frontmatter for a `domain: methodology` + `autonomy: high` gate** (the most common Convergence-Genius shape; abbreviated — see the full schemas above for every sub-field):
+
+```yaml
+domain: methodology
+# ... (gate_id, target, sources, asae_certainty_threshold, severity_policy,
+#      session_chain, persona_role_manifest, inputs_processed, disclosures per v05+) ...
+
+dependencies_attested:          # Tier 7 (domain trigger)
+  - kind: tool
+    name: <tool>
+    version: <ver>
+    source: <url>
+    integrity: verified-via-platform-<N>
+    trust_basis: official
+  # OR: - none: true
+
+output_execution_boundary:      # defensive (Tier 8 won't fire on .md/.json, but declaring is clean)
+  produces_executable: false
+  rationale_no_exec_output: "work product is methodology documentation"
+
+capability_scope:               # Tier 11 (ALWAYS-MANDATORY)
+  tools_used: [...]
+  permissions_exercised: [...]
+  paths_written: [...]
+  autonomy_level: high
+  scope_diff_check:
+    matches_role_manifest_operations: true
+    matches_role_manifest_paths: true
+
+hai_integrity:                  # Tier 12 (fires because autonomy_level: high)
+  hitl_gates_honored: [...]
+  autonomy_bounds_disclosed: { declared: true, boundary: "..." }
+  manipulation_vector_check: { posture: clean }
+  user_confirmations: [...]
+
+identity_attestation:           # Tier 13 (ALWAYS-MANDATORY)
+  primary_persona:
+    model: claude-opus-4-7
+    persona_name: "<persona> v<NN>"
+    role_manifest_path: _grand_repo/role-manifests/<slug>.yaml
+    scope_verified: true
+  participating_personas: [...]  # raters, co-authors
+  acted_as_human: false
+```
+
+**Gotcha (empirical, gate-86):** do NOT include `step_re_execution:` if your gate has no re-executions — an empty `step_re_execution: []` still triggers the Step-Re-Execution trailer requirement (Tier 1c-ext) and refuses the commit. Omit the field entirely. (This is the same Quickstart v03_I amendment 3 lesson; gate-86's first commit attempt was refused on exactly this.)
+
+The full per-aspect enforcement map (enforced/advisory/specced status, hook tier, trigger condition, FM-family coverage) is machine-readable at `mm-fm-taxonomy/docs/asae-aspect-reference-2026-05-31-v02.json` (gate-25). The anti-fabrication discipline underwriting A8/A17 is consolidated at `mm-claude-canonical/references/anti-fabrication.md` (gate-88).
 
 ### `recovery_events:` (Aspect 21 — Detect-Revert-Redelegate / DRR on F-class violations, MAST FM-1.1+1.2+3.2 + OWASP-Agentic T6+T3 + MS-RT silent-failure-family closure)
 

@@ -1,7 +1,7 @@
 ---
 name: html-interactive-ai-orchestration
-description: Use this skill to generate interactive HTML+JS browser-based diagrams for AI pipeline orchestration with zoom, click, tooltips, drag, and dynamic filtering. Triggers on 'interactive diagram', 'interactive pipeline', 'D3 diagram', 'HTML diagram', 'clickable pipeline visualization', 'interactive DFD', 'interactive data flow', 'zoomable pipeline', 'explorable workflow', or when the user needs a rich interactive visualization of AI orchestration that goes beyond static diagrams. Also use for full DFD (data flow diagram) rendering with interactive I/O mapping. Produces a self-contained HTML file openable in any browser.
-version: 0.1.0
+description: Use this skill to generate interactive HTML+JS browser-based diagrams for AI pipeline orchestration with zoom, click, tooltips, drag, and dynamic filtering. Triggers on 'interactive diagram', 'interactive pipeline', 'D3 diagram', 'HTML diagram', 'clickable pipeline visualization', 'interactive DFD', 'interactive data flow', 'zoomable pipeline', 'explorable workflow', or when the user needs a rich interactive visualization of AI orchestration that goes beyond static diagrams. Also use for full DFD (data flow diagram) rendering with interactive I/O mapping — human-reader exploration only; for deterministic-validator/gate-consumed artifacts, route via /diagram-pack Q0. Produces a self-contained HTML file openable in any browser.
+version: 0.2.0
 ---
 
 # HTML Interactive AI Orchestration Diagrams
@@ -385,6 +385,8 @@ Use when you need advanced graph algorithms (shortest path, clustering, centrali
 ```
 
 ## DFD (Data Flow Diagram) Mode
+
+> **Human-reader DFDs only — not for deterministic adjudication.** Interactive HTML output is a rendering for human exploration, not a parseable schema; a machine-linted intake gate cannot validate it. DFDs consumed by governance gates need trust-boundary + data-classification semantics in a validatable schema — e.g., **OWASP Threat Dragon JSON** (trust boundaries) or **pytm** (trust boundaries + classification) — and *no current Martinez Methods skill produces these* (gap recorded 2026-06-10; see `/diagram-pack` Q0 gate path + guidance note). Route such requests there.
 
 For interactive DFDs showing inputs/outputs per pipeline step, the HTML+JS approach excels because:
 

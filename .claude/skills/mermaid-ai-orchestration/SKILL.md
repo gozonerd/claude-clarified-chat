@@ -1,7 +1,7 @@
 ---
 name: mermaid-ai-orchestration
-description: Use this skill to generate Mermaid diagrams for AI pipeline orchestration, agentic workflows, multi-model routing, and dependency-aware sequenced pipelines. Triggers on 'mermaid diagram', 'pipeline DAG', 'flowchart for pipeline', 'dependency graph in mermaid', 'visualize the pipeline', 'diagram this workflow', 'DFD in mermaid', or when the user describes an AI workflow and wants an in-thread or markdown-embeddable diagram. Produces industry-standard DAGs, flowcharts, sequence diagrams, and basic DFDs using Mermaid syntax.
-version: 0.1.0
+description: Use this skill to generate Mermaid diagrams for AI pipeline orchestration, agentic workflows, multi-model routing, and dependency-aware sequenced pipelines. Triggers on 'mermaid diagram', 'pipeline DAG', 'flowchart for pipeline', 'dependency graph in mermaid', 'visualize the pipeline', 'diagram this workflow', 'DFD in mermaid', or when the user describes an AI workflow and wants an in-thread or markdown-embeddable diagram. Produces industry-standard DAGs, flowcharts, sequence diagrams, and basic DFDs using Mermaid syntax. Human-reader artifacts only — for deterministic-validator/gate-consumed artifacts, route via /diagram-pack Q0 (Mermaid has no machine-readable AST export for flowcharts).
+version: 0.2.0
 ---
 
 # Mermaid AI Orchestration Diagrams
@@ -22,10 +22,11 @@ Mermaid renders natively in: GitHub markdown, GitLab, VS Code (with extension), 
 | Per-step flowchart within a pipeline | **Yes** | Decision diamonds, process boxes, conditional paths |
 | Sequence of model calls (who calls what) | **Yes** | `sequenceDiagram` shows request/response between agents |
 | Human-AI swimlane orchestration | **Limited** | Mermaid swimlanes are basic — use BPMN or PlantUML for rich lanes |
-| Complex dependency graph (50+ nodes) | **No** | Use Graphviz for dense graphs — Mermaid layout struggles at scale |
+| Complex dependency graph (15–20+ nodes) | **No** | Use Graphviz — Mermaid auto-layout degrades beyond ~15–20 nodes *(threshold reconciled 2026-06-10 from a stale "50+" to match the diagram-pack / graphviz handoff)* |
 | Interactive exploration with zoom/click | **No** | Use HTML+JS (D3.js) for interactivity |
-| Basic data flow diagram (DFD) | **Yes** | Mermaid flowcharts can approximate DFD notation |
+| Basic data flow diagram (DFD) | **Yes** | Mermaid flowcharts can approximate DFD notation — human readers only (see DFD note below) |
 | Formal I/O mapping per pipeline step | **Partial** | Mermaid can show it; full DFD is better in HTML+JS |
+| Machine-validated artifact (deterministic gate / linted intake / governance adjudication) | **No** | Mermaid has no machine-readable AST export for flowcharts, and none at all in mermaid-cli (open issue mermaid-js/mermaid-cli#978) — a deterministic validator cannot parse it. Use BPMN 2.0 XML or Graphviz DOT; for threat-model DFDs see the DFD note below |
 
 ## Domain: AI Pipeline Orchestration Patterns
 
@@ -113,6 +114,8 @@ gantt
 ### 4. Basic DFD (using flowchart notation)
 
 For data flow diagrams showing inputs/outputs per step:
+
+> **Human-reader DFDs only — not for deterministic adjudication.** Mermaid DFDs have no machine-readable AST export (mermaid-js/mermaid-cli#978) and carry no trust-boundary or data-classification schema. DFDs consumed by governance gates (machine-linted intake) need a parseable threat-model schema — e.g., **OWASP Threat Dragon JSON** (trust boundaries) or **pytm** (trust boundaries + classification) — and *no current Martinez Methods skill produces these* (gap recorded 2026-06-10; see `/diagram-pack` Q0 gate path + guidance note). Route such requests there rather than approximating in Mermaid.
 
 ```
 graph LR

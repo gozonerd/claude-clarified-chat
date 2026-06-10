@@ -1,7 +1,7 @@
 ---
 name: plantuml-ai-orchestration
 description: Use this skill to generate PlantUML diagrams for AI pipeline orchestration with swimlanes, sequence diagrams, and activity diagrams. Triggers on 'PlantUML diagram', 'PlantUML swimlane', 'sequence diagram for pipeline', 'activity diagram for workflow', 'PlantUML for AI', or when the user needs portable text-based diagrams with good swimlane support that render via plantuml.com or VS Code. Produces PlantUML notation for activity, sequence, and deployment diagrams.
-version: 0.1.0
+version: 0.1.1
 ---
 
 # PlantUML AI Orchestration Diagrams
@@ -32,7 +32,7 @@ Claude generates PlantUML text as a code block or saves it as a `.puml` file.
 | Simple pipeline DAG | **No** | Use Mermaid — faster, renders in GitHub natively |
 | Formal enterprise process model | **No** | Use BPMN — ISO standard with richer semantics |
 | Interactive exploration | **No** | Use HTML+JS for zoom/click |
-| Dense dependency graph (50+ nodes) | **No** | Use Graphviz — better auto-layout for complex graphs |
+| Dense dependency graph (20+ nodes) | **No** | Use Graphviz — better auto-layout for complex graphs *(threshold reconciled 2026-06-10 from a stale "50+" to match the corpus-wide ~15–20 handoff / graphviz 20+ primary range)* |
 
 ## Domain: AI Pipeline Orchestration Patterns
 

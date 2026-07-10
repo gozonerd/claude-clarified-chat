@@ -42,7 +42,59 @@ Individual authorship skills (`/write-prd`, `/write-trd`, `/write-avd`, `/write-
 - **Existing drafts** — optional; any of PRD / TRD / AVD / TQVCD / UXD already drafted will be consumed as starting points and refined rather than re-authored from scratch
 - **Existing reference design assets** — optional; if user has Figma exports, screenshots, or palette specimens already prepared, paths captured for UXD authorship in Phase 01 Step 01.5
 
+## Mode-Input-Selection Logic (NEW per LEAD §5.0 — L1 layer of META-8 cascade bb477923)
+
+This skill dispatches on a `mode: 1|2|3|4` parameter declared at invocation (LEAD Lock L5: one skill, mode-dispatch parameter — no per-mode skill forks). Mode selection determines which required artifacts gate entry before Phase 00.0 onboarding proceeds.
+
+**Declare mode at invocation:**
+
+- `mode: 1` — Greenfield. No existing bundle assumed.
+- `mode: 2` — Improvement (findings-driven).
+- `mode: 3` — New-Feature (brownfield-extend).
+- `mode: 4` — Staged Replacement (strangler-fig cutover).
+
+**Per-mode required inputs (refuse-on-missing-artifact):**
+
+| Mode | Required inputs | Missing-artifact refusal |
+|---|---|---|
+| 1 (Greenfield) | 6-doc bundle (PRD, TRD, AVD, TQVCD, UXD, PSCAD) — authored BY this skill's own Phase 01, not a precondition | N/A — Mode 1 is the bundle-authoring path itself |
+| 2 (Improvement) | Existing 6-doc bundle (on-demand — required only if a bundle-dependent step is reached) + **Findings Ledger** (per LEAD §3 schema 3: findings[] with id, severity, source, verification status, fix-stage mapping) | If Findings Ledger absent: refuse and point to its authoring path (Findings Ledger is authored from hostile-review output / gate logs / user reports — no `/write-*` skill exists for it yet in this bundle; escalate to the user for the authoring source). If bundle absent when a bundle-dependent step is reached: refuse and point to `/ideate-to-d2r-ready mode=1` to author it first. |
+| 3 (New-Feature) | Bundle (required, not on-demand) + **Capability Spec** (per LEAD §3 schema 4: capability_pr_faq, acceptance_criteria_summary, success_criteria_summary, integration points, rollout_strategy, canary_rings, kill_switch_flag) + **Bundle Delta Plan** authored in-flight (per Lock L6 — Mode 3 updates the 6-doc bundle inline; the Delta Plan is produced during the run, not required at entry) | If bundle absent: refuse and point to `/ideate-to-d2r-ready mode=1` to author it first. If Capability Spec absent: refuse and point to its authoring path (no `/write-*` skill exists for it yet — escalate to the user or the capability-decision source document). |
+| 4 (Staged Replacement) | Bundle (required) + **Cutover Plan** (per LEAD §3 schema 5: OLD/NEW state models, cutover events[], routing/gateway plan, data-consistency checks, rollback-per-event) | If bundle absent: refuse and point to `/ideate-to-d2r-ready mode=1` to author it first. If Cutover Plan absent: refuse and point to its authoring path (no `/write-*` skill exists for it yet — escalate to the user or the replacement-decision source document). |
+
+**Default-mode rule:** if `mode` is absent at invocation, do NOT silently assume Mode 1. Interactively confirm which mode applies before proceeding to Phase 00.0. This mirrors the existing Prerequisite-Inputs discipline (mirrors the missing-required-artifact refusal already in place for the 6-doc bundle) and is the L1 layer of the broader META-8 cascade (cascade id bb477923) that governs how D2R input-doc structure changes propagate through downstream alignment-chain logic rather than being handled as a silent file-rename.
+
+**Refusal format (any mode, any missing required artifact):**
+
+```
+Mode [N] requires [artifact name], which is not present.
+Pointer: [authoring path — /write-* skill, or escalation to user/source document if no skill exists yet].
+This skill will not proceed until [artifact name] is available or explicitly waived by the user.
+```
+
+Once mode is confirmed and required inputs are validated (or their absence explicitly accepted where the input is on-demand, per Mode 2), proceed to Phase 00.0 Onboarding.
+
 ## Execution Protocol
+
+### Phase 00.0: Onboarding (NEW per LEAD §4 — recap of the approved 8-stage plan's `/ideate-to-d2r-ready` rewrite scope)
+
+Runs before Phase 00 Ideation Interrogation. Establishes the working relationship for this session and confirms how the user wants to work before any interrogation content is collected.
+
+**Greeting — no time-estimates.** Open with a plain-language greeting describing what this skill does (idea → six D2R prerequisite documents) and what happens next. Do NOT include any time-estimate, duration guess, or "this should take about X" framing — session length varies too widely by idea complexity and user pacing to respond honestly with a number, and a wrong number sets a bad expectation. If the user asks directly how long it will take, say so plainly rather than fabricating a figure.
+
+**Chat-vs-upload path selection.** Ask the user which mode of idea-transfer they prefer for this session:
+- **Chat path** — the user describes the idea conversationally; this skill asks the Phase 00 interrogation questions one at a time (or in small batches) as a dialogue.
+- **Upload path** — the user has existing material (a doc, notes, a deck, a voice memo, a video walkthrough) that already contains the idea; this skill ingests it first and pre-fills as many Phase 00 answers as it can from the material, then interrogates only the gaps.
+
+Do not assume which path the user wants. Ask explicitly and proceed on their answer.
+
+**Idea-development assessment.** Before diving into the twenty Phase 00 questions, assess out loud (briefly) how developed the idea sounds from what the user has said or uploaded so far: fully-formed-with-detail / partially-formed / early-spark. This sets expectations for how much interrogation is ahead — a fully-formed idea may sail through Phase 00 quickly; an early-spark idea will need more back-and-forth. State the assessment plainly; do not pair it with a time-estimate (per the no-time-estimates rule above).
+
+**Media handling — acknowledge the transcription gap.** If the user's upload path includes audio or video material (a voice memo, a recorded walkthrough, a video demo), explicitly acknowledge that this skill does not have a built-in audio/video transcription capability — the user needs to supply a transcript (or this skill needs to hand off to a transcription tool first) before that material's content can feed Phase 00 answers. Do not silently skip audio/video uploads or pretend to have processed them. Name the gap, then ask the user how they want to proceed (provide a transcript themselves / use an external transcription tool / describe the content verbally instead).
+
+**ASAE gate at phase end.** Before proceeding to Phase 00 Ideation Interrogation, run an ASAE gate over the Phase 00.0 onboarding outputs (mode confirmed if it was ambiguous, path selected, idea-development assessment recorded, media-gap disposition recorded) at threshold 2 standard. This is a lightweight onboarding-completeness gate, not a content-quality gate — it confirms the session is set up correctly, not that the idea itself is sound (that's Phase 00's job).
+
+Report completion in-thread with a one-line confirmation before proceeding to Phase 00.
 
 ### Phase 00: Ideation Interrogation
 
@@ -277,11 +329,15 @@ Save the Phase 00 summary to `[planning-directory]/[prefix]_Phase00_Ideation_Sum
 
 Report completion in-thread with a one-line confirmation and the summary path. Present the summary for visual confirmation before proceeding.
 
-### Phase 01: Sequential Authorship
+### Phase 01: Sequential Authorship (Opus-dispatch drafting, NEW per LEAD §4)
 
 Invoke the six authorship skills in order. Each skill runs its own convergence gate at threshold 2 (`/write-uxd` runs at `/asae domain=design` threshold 2; the others at `domain=document` threshold 2). Do not proceed to the next skill until the current document is user-approved.
 
-Report phase-by-phase progress per the no-silent-execution rule: at minimum a short in-thread confirmation at the start of each step and the individual gate summary at the end.
+**Opus-dispatch drafting.** Drafting work for each of the six authorship skills is dispatched to Opus (the planning/authorship model tier, per LEAD §5.3 — planning/authorship stays Opus, unchanged from the April design). This orchestrator does not draft document content itself; it dispatches each `/write-*` invocation as a unit of Opus work and waits for the result.
+
+**2-sentence prompt summaries per dispatched unit.** For every dispatched drafting unit (each of the six `/write-*` invocations), report a 2-sentence summary of the prompt being dispatched before waiting on the result — one sentence naming what is being drafted and against which upstream inputs, one sentence naming the expected output artifact and gate. This keeps the dispatch visible in-thread without dumping the full prompt payload. Example: "Dispatching `/write-trd` to Opus against the approved PRD at [path] and the Phase 00 summary's hard-constraints capture. Expect a TRD draft gated at `/asae domain=document` threshold 2 before Step 01.3 AVD can start."
+
+Report phase-by-phase progress per the no-silent-execution rule: at minimum a short in-thread confirmation at the start of each step (the 2-sentence dispatch summary above satisfies this) and the individual gate summary at the end.
 
 **Step 01.1: PRD**
 
@@ -385,9 +441,11 @@ classification_reason: Working draft for D2R Stage 00 consumption; planning-dire
 
 **Hook v07+ enforcement (when active):** Hook v07+ Tier 25 (per Batch 2 META-9 implementation) refuses commits where classification/audience mismatch the strict mapping. /ideate Phase 03 Bundle Approval verifies all 6 docs have these 3 frontmatter fields populated and consistent before marking the bundle approved.
 
-### Phase 02: Cross-Doc Consistency Audit
+### Phase 02: Cross-Doc Consistency Audit (Sonnet-dispatch, NEW per LEAD §4)
 
 Individual gates catch per-document issues. This phase catches issues that only emerge when the six documents are read together.
+
+**Sonnet-dispatch execution tier.** The cross-doc audit and its remediation-routing follow-through are execution-shaped work against an already-authored bundle (checklist traversal, chain-leg verification, routing table lookups) rather than fresh planning/authorship — this phase dispatches to Sonnet, not Opus. This mirrors LEAD §5.3's world-openness model-assignment logic: closed-world, pre-chewed execution (the audit runs against six documents that already exist, with a fully-specified checklist) sits at the execution tier rather than the planning tier. Report each dispatched audit pass with a short in-thread confirmation naming the checklist scope being run and the gate it feeds, per the no-silent-execution rule.
 
 **Cross-doc checklist:**
 
@@ -645,7 +703,26 @@ Wait for explicit approval.
 | Push fails on branch protection | Report protection rule; halt; user decides PR vs. direct commit by policy |
 | Files outside target repo | Warn + skip staging those files; still commit the in-repo subset if non-empty |
 
-### Phase 04 (Optional): Portable Prompt Generation
+### Phase 04: End-Prompt Generation and Portable Prompt Export
+
+This phase now has two sub-parts: Phase 04a is NEW (per LEAD §4, the end-prompt generation added to the approved 8-stage plan's `/ideate-to-d2r-ready` rewrite scope) and runs automatically at the end of a completed bundle; Phase 04b is the pre-existing optional user-triggered portable-prompt export, unchanged in behavior.
+
+**Phase 04a: End-Prompt Generation (NEW per LEAD §4)**
+
+Runs automatically once Phase 03 Approval Gate + Bundle Commit completes (either on `✓` commit or `✓ no-commit`) — this is the standard hand-off close of a successful run, not something the user has to ask for.
+
+Generate a hand-off end-prompt that packages the completed bundle for its next consumer (`/dare-to-rise-code-plan`, or a human reviewer, or another planner LLM in an experimental multi-planner run). The end-prompt must contain:
+
+- **Bundle manifest** — the six document paths (PRD, TRD, AVD-or-Skipped-Status, TQVCD, UXD, PSCAD) plus the reference design assets directory, plus the Phase 00.0 onboarding disposition (mode, path selected, media-gap disposition) and the Phase 00 ideation summary path
+- **Approval + commit state** — Stakeholder Approvals status per document, commit SHA/branch/push status if committed (per Phase 03 step 7), or explicit "not committed" if `✓ no-commit` was chosen
+- **Phase 02 convergence gate summary** — final status, iteration count, findings resolved, so the next consumer knows the audit history without re-deriving it
+- **Explicit next action** — a one-line instruction naming the intended next consumer (typically: "pass this bundle to `/dare-to-rise-code-plan`") and any known caveats (e.g., outstanding LOW findings logged but not blocking)
+
+Save the end-prompt to `[planning-directory]/[prefix]_EndPrompt_[YYYY-MM-DD]_v01_I.md` per `/file-versioning` conventions. Report completion in-thread with a one-line confirmation and the path.
+
+The end-prompt is deliberately lighter-weight than the Phase 04b portable prompt below: it assumes the receiving party HAS file access (it's a hand-off manifest + state summary, not a content-inlined export for a file-access-less LLM). Use Phase 04b instead when the receiving party has no file access.
+
+**Phase 04b (Optional): Portable Prompt Generation**
 
 Triggered at any phase when the user says "give me a portable prompt", "export as a prompt", "I want to run this in another LLM", or equivalent.
 
@@ -715,3 +792,17 @@ Authorship skills detect orchestrated mode via the invocation context marker in 
 - `feedback_no_prs_default` — direct commit to main on private repos; PRs only when load-bearing
 - `feedback_ip_discipline_filesystem` — commit messages + branch names + log entries follow the same IP discipline as prose (branded terminology, no methodology exposure)
 - `no-silent-execution` — report commit SHA + branch + push status after the Phase 03 git operations
+
+## v03 changelog
+
+Added 2026-07-06 (TESS T1 implement pass), implementing LEAD doc `Unified_4-Mode_Proposal_LEAD_2026-07-02_v03_I.md` §4 (upstream `/ideate-to-d2r-ready` rewrite scope) and §5.0 (dispatch + input validation). This is the **L1 layer of META-8 cascade bb477923** — the layer that governs how D2R input-doc structure changes propagate through downstream alignment-chain logic rather than being handled as a silent file-rename.
+
+Additions, preserving all existing structure/content:
+
+- **Mode-Input-Selection Logic** (new section, placed before Execution Protocol) — declares `mode: 1|2|3|4` at invocation per LEAD §5.0; per-mode required-input table (Mode 1 = 6-doc bundle authored by this skill; Mode 2 = existing bundle on-demand + Findings Ledger; Mode 3 = bundle required + Capability Spec + in-flight Bundle Delta Plan; Mode 4 = bundle required + Cutover Plan); refuse-on-missing-artifact rule with pointer to authoring path; default-absent-mode → interactive confirm, never silent Mode-1 assumption.
+- **Phase 00.0: Onboarding** (new phase, before the existing Phase 00 Ideation Interrogation) — no-time-estimate greeting; chat-vs-upload path selection; idea-development assessment; media handling with the audio/video transcription gap explicitly acknowledged (not silently skipped); ASAE gate (threshold 2 standard) at phase end.
+- **Phase 01: Sequential Authorship** — retitled to note Opus-dispatch drafting; added the Opus-dispatch framing (drafting stays at the planning/authorship tier per LEAD §5.3) plus the 2-sentence prompt-summary requirement per dispatched `/write-*` unit.
+- **Phase 02: Cross-Doc Consistency Audit** — retitled to note Sonnet-dispatch; added the Sonnet-dispatch execution-tier framing (closed-world, pre-chewed audit work sits at the execution tier per LEAD §5.3's world-openness model-assignment logic, distinct from Opus-tier planning/authorship).
+- **Phase 04: End-Prompt Generation and Portable Prompt Export** — restructured the pre-existing optional Portable Prompt Generation phase into Phase 04b (unchanged behavior) and added new Phase 04a End-Prompt Generation (per LEAD §4) — an automatic, lighter-weight hand-off manifest generated at the close of every successful bundle run (bundle manifest + approval/commit state + Phase 02 gate summary + explicit next action), distinct from the file-access-less portable-prompt export in 04b.
+
+No existing content was deleted. Where an existing phase needed disambiguation against new content (Phase 04), the original content was preserved verbatim under a new sub-label (04b) rather than removed or rewritten.

@@ -3,7 +3,13 @@ name: write-uxd
 description: "Use this skill to author a User Experience Document as a prerequisite input to /dare-to-rise-code-plan. Triggers on: '/write-uxd', 'write-uxd', 'author a UXD', 'write a user experience document', 'generate UXD', 'draft UXD', 'design system doc'. Loads the UXD template (v03_I per 2026-05-05 D2R Accessibility Floor Update — adds §3.5 theme system + §5.5/§5.6/§5.7 lived-floor accessibility design specs to the legal-floor baseline), walks the user through each required section with reference-anchor discipline AND lived-floor accessibility discipline (cognitive ADHD-conscious design / reading dyslexia-conscious typography / vision user-controlled theme toggle), produces a validated filled-in instance. Output is a UXD file saved to the project's planning directory, ready for downstream D2R consumption and Stage NN Design Polish."
 ---
 
+<!-- v03: L7 anti-pattern pointer + Step-0 read + template pointer fix (FORK-A Stage 8) -->
+
 # Write UXD
+
+## Dispatch Tier
+
+This `/write-uxd` authoring task is **closed-world** (dispatched per LEAD §5.3 world-openness criteria; closed-world authorship tier).
 
 ## Purpose
 
@@ -33,6 +39,10 @@ This skill is designed for transferability: it can run in any Claude thread, and
 - **Remediation target** — optional; a specific section identifier (e.g., `Section 2.1`) when invoked by `/ideate-to-d2r-ready` Phase 02 to remediate a cross-doc finding. In remediation mode, skip Steps 2–3 and edit only the target section
 
 ## Execution Protocol
+
+### Step 0: Required Pre-Authoring Read
+
+Before doing anything else, read `references/anti-patterns/UXD_AntiPatterns_2026-07-06_v01_I.md` (relative to the `dare-to-rise-code-plan` skill directory). This is a REQUIRED read before authoring — it carries the full rationale and fix for every known UXD failure mode. Do not proceed to Step 1 until it has been read.
 
 ### Step 1: Load Template And Check Invocation Mode
 
@@ -157,15 +167,7 @@ The generated portable prompt must:
 
 ## Anti-Patterns
 
-- Writing a UXD without the template (produces inconsistent output across projects)
-- Skipping the reference-anchor discipline in Step 2 (re-introduces F13-class fictional-reference failure at the visual layer)
-- Accepting brand-voice decisions stated as adjectives ("modern", "clean", "professional") — produces UXDs that fail to constrain implementer choices
-- Accepting reference apps without screenshots — words-only references don't anchor implementation
-- Filling in content the user hasn't approved (this is user-facing visual character, not Claude's invention)
-- Running the ASAE gate at threshold > 2 (a UXD is pre-implementation content; threshold 2 is appropriate rigor for design-spec authorship; cross-doc gate at threshold 3 strict happens at Phase 02 in `/ideate-to-d2r-ready`)
-- Treating the UXD as TRD or AVD content (these are separate documents by design — TRD is tech stack, AVD is system architecture, UXD is visual + interaction character)
-- Merging the polish criteria into TQVCD (TQVCD is functional + accessibility quality gates; UXD polish criteria are visual character bars; they overlap on accessibility but are otherwise distinct)
-- Saving reference design assets without versioning (assets evolve; un-versioned assets cause downstream stages to consume stale references)
+Full anti-pattern catalog with rationale and fixes lives in `UXD_AntiPatterns_2026-07-06_v01_I.md` (references/anti-patterns/) — covers template-skipping, reference-anchor discipline failures, adjective-only brand voice, unapproved invention, ASAE threshold misuse, cross-doc content bleed, single-theme design systems, soft-NA on lived-floor accessibility, unversioned assets, and generic anti-pattern entries. Read it before authoring (Step 0); this section is a pointer, not the full reference.
 
 ## Related Skills
 
@@ -181,5 +183,6 @@ The generated portable prompt must:
 ## Related References
 
 - Template: `.claude/skills/dare-to-rise-code-plan/references/UXD_Template_2026-05-05_v03_I.md` (v03_I supersedes v02_I per 2026-05-05 D2R Accessibility Floor Update — adds §3.5 theme system + §5.5/§5.6/§5.7 lived-floor accessibility design specs)
+- Anti-Patterns: `.claude/skills/dare-to-rise-code-plan/references/anti-patterns/UXD_AntiPatterns_2026-07-06_v01_I.md`
 - F13-class lessons (the reality-anchor argument): `_experiments/experiments/d2r_methodology_factorial/analysis/exploratory_findings_2026-04-22_prompt-variance_v03_I.md` Section "F13" (when added)
 - Companion TQVCD template: `.claude/skills/dare-to-rise-code-plan/references/TQVCD_Template_2026-05-05_v06_I.md` (v06_I §6 expansion: legal floor + lived floor mandatory test entries that operationalize this UXD's §5.5/§5.6/§5.7 design specs)

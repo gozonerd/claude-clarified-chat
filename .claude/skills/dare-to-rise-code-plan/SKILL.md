@@ -18,7 +18,218 @@ The skill produces a structured code plan whose execution is governed by determi
 - Before generating any multi-step implementation plan
 - Before any code is written against a specification
 
+## Mode Dispatch (v03)
+
+This skill is **one skill, mode-dispatched** (Lock L5 — no per-mode skill forks). Every invocation
+declares a mode before anything else happens. Mode 1 (Greenfield) is the skill's original, still-fully-
+present behavior — everything below "Prerequisite Inputs" through "Stage QA" is Mode 1's machinery,
+unchanged. Modes 2/3/4 are brownfield dispatch layers that reuse Mode 1's execution spine (Stage 02+
+sub-stage structure, hook layers, ASAE gate discipline) but replace the front end (input gate, Stage
+00, Stage 01) and the QA exit per mode. This section is the dispatch contract; the per-mode substance
+lives in the companion Mode spec docs at `references/modes/`.
+
+Provenance: LEAD doc `docs/Unified_4-Mode_Proposal_LEAD_2026-07-02_v03_I.md` §5.0–§5.5 (design) +
+`docs/FORK-A_Rulings_and_Execution_Spec_2026-07-03_v01_I.md` §2 (D1/D2 rulings) + §3.1 (D1 landing
+sites, including this Stage-9 amendment).
+
+### 5.0 Dispatch + input validation
+
+`mode: 1 | 2 | 3 | 4` is declared at invocation. Default absent → **interactive confirm** — never
+silently assume Mode 1. If the user does not name a mode, ask which of the four applies before doing
+anything else; do not infer it from context.
+
+| Mode | Name | Delta origin | Input gate |
+|------|------|-------------|------------|
+| **1** | Greenfield | — (full build) | The 6-doc bundle (PRD/TRD/AVD/TQVCD/UXD/PSCAD) per "Prerequisite Inputs" below, unchanged. |
+| **2** | Improvement (findings-driven) | Verification findings | Existing bundle **on-demand-required** (00R may pull bundle docs as needed, not gated up front) **+ Findings Ledger** (required unconditionally — there is no Mode-2 run without one). |
+| **3** | New-Feature (brownfield-extend) | Capability decision | 6-doc bundle **required** **+ Capability Spec** (required) **+ Bundle Delta Plan authored in-flight** per L6 (not gated at entry — it does not exist yet at dispatch time; it is written progressively as 00F/01F/02F-NN execution touches bundle docs). |
+| **4** | Staged Replacement (strangler-fig) | Replacement decision | 6-doc bundle **required** **+ Cutover Plan** (required, hard refuse if missing — not a soft warning) **+ Bundle Delta Plan authored in-flight** (L6, shared discipline with Mode 3). |
+
+**Missing-artifact rule:** any required artifact absent or a placeholder → refuse with a pointer to
+its authoring path (mirrors the existing Prerequisite-Inputs discipline in this skill): the Findings
+Ledger, Capability Spec, and Cutover Plan each have a schema spec + authoring flow under
+`references/schemas/`; point there, do not proceed. A **size-skipped** artifact (e.g., a Cutover Plan
+missing its OLD/NEW state models "because the change is small") is refused at this same gate, not
+discovered later — Mode 4's D1 floor (§5.2 below) is non-negotiable regardless of change size.
+
+**Routing:** once the input gate clears, dispatch to the mode's companion spec for the substantive
+checklist and QA protocol:
+- Mode 2 → `references/modes/Mode2_Improvement_Spec_2026-07-06_v01_I.md` (00R checklist, QA-R protocol)
+- Mode 3 → `references/modes/Mode3_NewFeature_Spec_2026-07-06_v01_I.md` (00F checklist, QA-F protocol)
+- Mode 4 → `references/modes/Mode4_StagedReplacement_Spec_2026-07-06_v01_I.md` (00S checklist, QA-S protocol)
+
+This SKILL.md is the dispatch contract and the shared execution spine; the Mode spec docs are where
+each mode's Stage-00/QA substance is authored in full. Do not duplicate their content here — reference
+them.
+
+### 5.1 Environment-Verification (EV) stage — replaces Scaffold for Modes 2/3/4
+
+Mode 1's Stage 02 is **always** Project Scaffold (unchanged — see "Stage 02: Project Scaffold"
+below). For Modes 2/3/4, code already exists; Stage 02 is instead the **EV stage**, opening every
+brownfield run with a recorded, revertible, judgment-free picture of reality before any fix, feature,
+or cutover work begins.
+
+**Record-don't-judge Baseline Ledger.** The EV executor runs the declared baseline commands and
+records, verbatim, without interpreting:
+- Commands run, their exit codes, failure names, and verbatim output tails
+- Repo state: branch, HEAD, dirty files, unpushed commits, submodule SHAs
+- Dependency snapshot: lockfile hash, engine/ABI versions
+- A **revert-point tag** + its own Ledger line (the everything-fable revert-point principle,
+  formalized into the stack)
+
+**Expected-baseline block.** Authored at Stage 01 (by the planning-tier model) — it pre-declares known
+conditions the Ledger should match (e.g., "drwrite's dual-ABI test seesaw is expected-red on platform
+X"). A red-but-documented baseline is *matched*, not interpreted as a new failure.
+
+**Deviation rule (complete — this is the whole rule, not a summary of it):** every Baseline Ledger
+line is either:
+- **(a) matched** to an entry in the Expected-baseline block → recorded, proceed; or
+- **(b) unmatched** → the EV stage **halts**, records the deviation verbatim in the Ledger, and
+  escalates to the **plan-authoring tier** (the orchestrating model), which dispositions it one of two
+  ways under the standing approval gates: amend the Expected-baseline block (a gated, Krystal-visible
+  plan amendment) or convert the deviation into a Findings-Ledger-style entry that becomes fix scope.
+
+**The run does not proceed past EV with any undispositioned line.** The EV executor never
+adjudicates — it records, it matches, it halts. Adjudication is the plan-authoring tier's job, not the
+EV stage's.
+
+**Concordance, defined:** zero undispositioned Ledger lines. Not "all green" — *all accounted for.* A
+Baseline Ledger full of documented-red entries that all match their Expected-baseline counterparts has
+reached concordance; one unmatched line, however trivial-looking, has not.
+
+**Executor: Sonnet floor** (L9 — see §5.3). Rationale: EV is open-world execution (environment
+capture, baseline runs, un-pre-chewed repo state) — exactly the class Krystal's production experience
+found Haiku spotty on.
+
+**Artifact home:** the **Baseline Ledger is artifact #9** — a *runtime-evidence* artifact class added
+in v03, distinct from L1's locked eight (input/planning artifacts). Artifact #9 does not reopen or
+expand L1; it is produced by execution and consumed by gates, not authored upstream of a stage.
+
+**Exit:** the ASAE gate audits concordance as defined above, at threshold 2 (Stage-00-equivalent
+research-rigor gate, since EV replaces Scaffold at the same position in the sequence Mode 1 uses for
+Stage 02).
+
+### 5.2 Per-mode Stage-00 track mapping (00R / 00F / 00S) + D1 track-depth encoding
+
+Mode 1's Stage 00 is the 16-hardwired + 4-applicability-gated track set documented in full below
+("Stage 00: Comprehensive Research"). Modes 2/3/4 run a **mode-specific Stage-00 variant** instead —
+00R, 00F, 00S respectively — each of which reuses applicable Mode-1 tracks scoped to the delta and
+adds brownfield-specific tracks named in the companion Mode spec docs. This subsection specifies the
+mapping and — the part OPEN-1 gated until FORK-A's D1 ruling — **encodes the per-mode architecture-fit
+floor at the track-depth level**, so the floor is structural, not left to per-run author discretion.
+
+**00R (Mode 2) — light-with-guard:**
+- Drops Mode-1 tracks that assume nothing exists yet (scaffold / stack-selection class)
+- Keeps production-engineering + accessibility + test-strategy tracks as *re-verification* passes
+- Adds: per-finding verification protocol (the STILL-PRESENT / REMEDIATED-INCIDENTALLY /
+  SCOPE-CHANGED trichotomy), regression-surface mapping, fix-blast-radius analysis
+- **D1 floor:** architecture-fit analysis stays **light** by default — proportionate to typical
+  Mode-2 work, most of which is small, contained fixes. **Guard:** the Findings Ledger's required
+  `findings[].boundary_touch` boolean (derived from the fix-blast-radius track) is the escalation
+  trigger. When a finding's `boundary_touch = true`, 00R **escalates** architecture-fit analysis for
+  that finding specifically — light-with-guard is a floor with teeth, not a suggestion. A
+  STILL-PRESENT finding with `boundary_touch = true` that never received an escalated architecture-fit
+  pass is a schema violation per the Findings Ledger spec, not a stylistic gap.
+
+**00F (Mode 3) — substantive-by-default:**
+- Keeps most Mode-1 tracks scoped to the delta
+- Adds: dependency analysis, integration-point mapping (populates the Capability Spec's
+  `integration_points[]` directly), and capability-fit-vs-existing-architecture analysis — the literal
+  AVD-equivalent question OPEN-1 gated
+- **D1 floor:** the capability-fit analysis is **real and mandatory by default** — this is the
+  opposite direction from 00R's floor. Proportionality goes *up* from a substantive baseline as change
+  size grows; it does not go down to a paragraph for a "small" feature. The floor is encoded
+  structurally in the Capability Spec's mandatory `architecture_fit` block (`fit_assessment`,
+  `boundary_map_ref`, `architectural_risks[]`, `alternatives_considered`) — 00F **cannot exit** with
+  `architecture_fit` absent or placeholder; a missing/placeholder block makes the whole Capability
+  Spec an incomplete artifact, which blocks Mode-3 dispatch the same way a missing Capability Spec
+  does at the input gate (§5.0).
+
+**00S (Mode 4) — full, non-negotiable:**
+- Runs **00F's additions PLUS**: cutover-readiness assessment, OLD/NEW state modeling, data-migration
+  integrity checks, routing/gateway design
+- **D1 floor:** OLD/NEW state models + invariant/data-consistency preservation are **mandatory
+  regardless of component size**. Cutover *is* architecture surgery; there is no "small" version of a
+  strangler-fig cutover event. A size-skipped Cutover Plan is refused at the §5.0 input gate before
+  00S ever opens — this is where D1's Mode-4 floor is enforced mechanically, not left to 00S to catch
+  after the fact.
+
+**The three floors, read together:** 00R ⊂ 00F ⊂ 00S in scope (each mode's track set is a superset of
+the prior), but the *floor* moves in the opposite direction from what "subset" might suggest — 00R's
+architecture-fit floor is deliberately light (guarded, not absent), 00F's is substantive by default,
+and 00S's is full and non-negotiable. This is D1's ruling, not an inconsistency: the floor is indexed
+to how structurally invasive each mode's delta origin inherently is (a verified-finding fix vs. a new
+capability vs. a wholesale strangler-fig replacement of running architecture).
+
+**Exit gates:** each variant keeps the threshold-2 research-rigor gate from Mode 1's Stage 00 Exit
+(below), with mode-specific audit checklists drafted in full in the companion Mode spec docs
+(`references/modes/Mode2_*`, `Mode3_*`, `Mode4_*`).
+
+### 5.3 Model assignment by world-openness (L9)
+
+Supplements — does not replace — the Model Tier Table under "Core Principles" above. That table
+assigns by *role* (plans/decides/audits vs. setup vs. rote transcription). This subsection assigns
+brownfield **execution** stages by **world-openness**, per Krystal's locked production experience
+("i actually upgraded this stage to sonnet bc haiku was spotty… i dont wanna go back").
+
+- **Closed-world execution** (Deep-spec transcription; the plan has pre-chewed everything the
+  executor needs): **Haiku**, unchanged economics — same as Mode 1's Stage 03+ default.
+- **Open-world execution** (environment capture, baseline runs, anything touching un-pre-chewed repo
+  state — this is what the EV stage, §5.1, *is*): **Sonnet floor**, locked. Distribution surprise, not
+  reasoning depth, is the differentiator: Haiku is not less capable of reasoning about a baseline
+  failure, it is less reliable at the un-pre-chewed *distribution* of what a live repo throws at it.
+- **Planning/authorship:** Opus, unchanged (Stage 00/00R/00F/00S research, Stage 01/01R/01F/01S
+  authorship, ASAE gate judgment — same assignments as Mode 1's existing Model Tier Table).
+- **Newest-small-model retests** (i.e., trying a newer/smaller model against the Sonnet-floor
+  assignment) happen as **eval arms only** — seeded repo, known seesaw, known breakage, score the
+  Baseline Ledger — never as a quiet production swap. The Sonnet floor is a lock (L9), not a default
+  pending re-evaluation.
+
+Honest gap carried from the LEAD doc: the Sonnet-floor *decision* is Krystal's lock; exactly *which*
+stage classes count as "open-world" (the category boundary itself) is v03-original taxonomy riding her
+review, not itself locked.
+
+### 5.4 Ablation switch
+
+First-class invocation flag, orthogonal to `mode`:
+
+`stack: full | input-docs-only | off`
+
+- `full` (default): the complete D2R governance stack runs — hooks, ASAE gates, EV stage, all
+  tracks — identical to current production behavior. **No behavior change for production runs.**
+- `input-docs-only`: the 6-doc bundle / per-artifact schema inputs are honored but the governance
+  machinery (hooks, gate enforcement, EV halting) is bypassed for research purposes.
+- `off`: the stack does not run at all.
+
+Purpose: lets Krystal's experiments (capability-ceiling eval conditions; the D2R/ASAE ablation study
+arms) include or exclude the stack cleanly and **identically across arms**, without hand-hacking skill
+availability per experiment condition. This is research support, not a production feature — `full` is
+the only production posture and remains the default absent an explicit override.
+
+### 5.5 Hooks + gates integration
+
+Layer-1/2 hook stage-name patterns (see "Hook Orchestration" above) extend to cover the mode-specific
+stage names introduced by this amendment:
+
+`02R-NN` (Mode 2 per-finding fix stages) · `02F-NN` (Mode 3 per-feature-component stages) · `02S-NN`
+(Mode 4 interleaved ADDED+REMOVED cutover-event stages) · `EV` (the environment-verification stage,
+§5.1, at Modes 2/3/4's Stage-02 position)
+
+These are hook v10/v11-era patterns. The April design that produced this dispatch predates gate-8's
+`/asae` v08 — invocation-pattern compatibility of these new stage-name patterns with v08 is part of
+the same Stage-9 diff-check as the next paragraph, not yet a verified claim.
+
+**`/asae` v08 invariance — assertion pending diff-check, not claimed done.** No `/asae` spec change is
+currently expected: mode-invariance was confirmed during the April exploration (only the `prompt:`
+field was found to vary per mode; scope shape held fixed). **That confirmation predates v08.** This
+amendment records the mode-invariance claim as **assertion-grade pending a diff-check against the
+current v08 spec** — the diff-check itself is a deliverable of this Stage 9 amendment's completion,
+not something this amendment resolves by assertion. Do not treat "no spec change expected" as "no
+spec change verified" until the diff-check runs.
+
 ## Prerequisite Inputs
+
+**Mode 1 only — Modes 2/3/4 use the per-mode input gate in §5.0 above, not this section.**
 
 This skill requires six standardized input documents to exist and be approved before Stage 00 can run. Without them, the plan is ungrounded and Stage 00 research has no scoping constraint.
 
@@ -794,6 +1005,10 @@ On pass: proceed to Stage 02. On fail: remediate plan content and re-run gate.
 
 ## Stage 02: Project Scaffold (Sonnet)
 
+**Mode 1 only.** For Modes 2/3/4, this stage position is the **EV stage** (§5.1 above), not Project
+Scaffold — code already exists in a brownfield run, so there is nothing to scaffold. Everything below
+in this section describes Mode 1's behavior, unchanged from pre-v03.
+
 Stage 02 is always Project Scaffold. Executed by Sonnet. This stage creates the working project environment that Stage 03+ Haiku implementation runs within.
 
 ### Scope
@@ -1026,6 +1241,11 @@ This skill is at **methodology version 0.4.0** (2026-04-27). Filled-in bundles m
 - `/file-presentation` — For presenting generated files to the user.
 - `/walk-me-through` — For walking the user through research findings or results.
 
+**Mode-dispatch companions (v03, §5.0):**
+- Mode 2 spec (`references/modes/Mode2_Improvement_Spec_2026-07-06_v01_I.md`) — 00R checklist, D1 light-with-guard floor, QA-R protocol
+- Mode 3 spec (`references/modes/Mode3_NewFeature_Spec_2026-07-06_v01_I.md`) — 00F checklist, D1 substantive-by-default floor, QA-F protocol
+- Mode 4 spec (`references/modes/Mode4_StagedReplacement_Spec_2026-07-06_v01_I.md`) — 00S checklist, D1 full-floor, QA-S protocol
+
 ## Related References
 
 **Templates (methodology v0.4.0; PRD/TRD/AVD remain at template-level v03 with v04+ bump scheduled per gate-56 honest-gap; TQVCD at v06_I per 2026-05-05 D2R Accessibility Floor Update + earlier Mod 8.1; UXD at v03_I per 2026-05-05 D2R Accessibility Floor Update; PSCAD ships at v01_I as the new 6th sibling):**
@@ -1044,6 +1264,21 @@ This skill is at **methodology version 0.4.0** (2026-04-27). Filled-in bundles m
 
 **Other:**
 - `references/Software_Testing_Taxonomy_2026-04-17_v01_I.md` — 20 test categories, 39 stress test categories, AI-driven test selection strategy. Used in TQVCD authorship to declare applicability per category, in Stage 01 Step 2 for QA design, and in Stage QA for the applicable sweep.
+
+**Brownfield per-artifact schemas (v03, L1 Option-B set, artifacts #1-8) + runtime-evidence artifact #9:**
+- `references/schemas/Opportunity_Assessment_Spec_2026-07-06_v01_I.md` — artifact #1
+- `references/schemas/Customer_Letter_Spec_2026-07-06_v01_I.md` — artifact #2
+- `references/schemas/Findings_Ledger_Spec_2026-07-06_v01_I.md` — artifact #3 (Mode 2 input; carries the `boundary_touch` D1 guard field)
+- `references/schemas/Capability_Spec_2026-07-06_v01_I.md` — artifact #4 (Mode 3 input; carries the mandatory `architecture_fit` D1 block)
+- `references/schemas/Cutover_Plan_Spec_2026-07-06_v01_I.md` — artifact #5 (Mode 4 input; OLD/NEW state models are the D1 full floor)
+- `references/schemas/Phased_Plan_Spec_2026-07-06_v01_I.md` — artifact #6
+- `references/schemas/Bundle_Delta_Plan_Spec_2026-07-06_v01_I.md` — artifact #7 (Modes 3/4, authored in-flight per L6)
+- `references/schemas/Deprecation_Events_Spec_2026-07-06_v01_I.md` — artifact #8
+- Artifact #9, the Baseline Ledger (runtime-evidence, §5.1), is spec'd inline in this SKILL.md rather than as a ninth standalone schema doc — it is produced by execution, not authored upstream of a stage.
+
+**META-8 cascade discipline (v03, built early per D2 ruling):**
+- `references/META8_Cascade_Discipline_2026-07-04_v01_I.md` — restated §4.1–4.3 cascade-attestation mechanism
+- `references/Tier25_Cascade_Hook_Spec_2026-07-04_v01_I.md` — the Tier-25 commit-hook rule implementing META-8 enforcement (wires at Stage 10; D1's Stage-3 schema additions are the first cascades it governs per FORK-A §3.2)
 
 ## Six-Layer Accessibility Hardwiring (Legal Floor + LIVED Floor per 2026-05-05 expansion)
 
@@ -1087,3 +1322,52 @@ For each standard declared applicable in TRD: there must be a corresponding beha
 - `file-naming-and-versioning` — Versioning for all document outputs
 - `no-silent-execution` — Every phase produces at minimum a short in-thread confirmation
 - `ip-language-discipline` — Branded terminology only; methodology not exposed in skill files
+
+## v03 changelog
+
+This amendment adds the `dare-to-rise-code-plan`-side mode-dispatch machinery on top of the
+pre-existing, fully-preserved Mode 1 (Greenfield) skill. Nothing in Mode 1's behavior — Prerequisite
+Inputs, the 16+4 Stage 00 tracks, Stage 01a/01b, Stage 02 Project Scaffold, Stage 03+ implementation,
+Stage NN+1 Design Polish, Stage QA — was deleted, renamed, or altered. Everything below was added.
+
+**Sections added:**
+- **"Mode Dispatch (v03)"** (new top-level section, inserted between "When to Use" and "Prerequisite
+  Inputs") containing:
+  - **§5.0 Dispatch + input validation** — `mode: 1|2|3|4` at invocation; default-absent interactive
+    confirm (never silent Mode 1); per-mode input gate table; missing/size-skipped-artifact refusal
+    rule; routing to the three companion Mode spec docs under `references/modes/`
+  - **§5.1 Environment-Verification (EV) stage** — replaces Stage 02 Scaffold for Modes 2/3/4;
+    record-don't-judge Baseline Ledger; Expected-baseline block; the complete Deviation rule
+    (matched/unmatched, halt-and-escalate, never-adjudicate); Concordance defined; Sonnet-floor
+    executor; Baseline Ledger as artifact #9 (runtime-evidence, distinct from L1's locked eight)
+  - **§5.2 Per-mode Stage-00 track mapping (00R/00F/00S) + D1 track-depth encoding** — the mapping
+    from Mode 1's tracks to each brownfield variant's additions, AND the per-mode architecture-fit
+    floor encoded at track-depth: 00R light-with-guard (`boundary_touch`-triggered escalation), 00F
+    substantive-by-default (mandatory `architecture_fit` block), 00S full and non-negotiable
+    (mandatory OLD/NEW state models regardless of size)
+  - **§5.3 Model assignment by world-openness (L9)** — closed-world execution = Haiku; open-world
+    execution (EV, baseline capture, un-pre-chewed repo state) = Sonnet floor; planning/authorship =
+    Opus; newest-small-model retests as eval arms only, never quiet production swaps
+  - **§5.4 Ablation switch** — first-class `stack: full | input-docs-only | off` invocation flag;
+    `full` is the unchanged production default; identical-across-arms posture for ablation research
+  - **§5.5 Hooks + gates integration** — extends Layer-1/2 hook stage-name patterns to `02R-NN` /
+    `02F-NN` / `02S-NN` / `EV`; flags the `/asae` v08 mode-invariance claim as assertion-grade pending
+    a diff-check (the April confirmation predates v08 — not claimed done)
+- **Mode-1-only scope notes** added at "Stage 02: Project Scaffold" (pointing brownfield modes to the
+  EV stage instead) and at "Prerequisite Inputs" (pointing brownfield modes to §5.0's per-mode gate)
+- **"Related Skills"** — added the three Mode spec companion-doc pointers (Mode 2/3/4)
+- **"Related References"** — added the 8 per-artifact brownfield schema spec pointers (artifacts
+  #1-8) + the META-8 cascade-discipline doc + the Tier-25 cascade-hook spec (artifact #9 documented
+  as spec'd inline in §5.1 rather than as a ninth standalone schema doc)
+
+**Citations:** `docs/Unified_4-Mode_Proposal_LEAD_2026-07-02_v03_I.md` §5.0–§5.5 (design source for
+all six dispatch subsections) + `docs/FORK-A_Rulings_and_Execution_Spec_2026-07-03_v01_I.md` §2 (D1
+ruling text) + §3.1 (D1's four landing sites, of which this SKILL.md amendment is the Stage-9 site —
+"the 00F/00S track-depth encoding — the exact part OPEN-1 gated — now encodes the per-mode floor…
+this unblocks Stage 9's previously-blocked-partial portion").
+
+This amendment completes the **L2 layer of the META-8 cascade attestation `bb477923`** — the
+`dare-to-rise-code-plan` SKILL.md is one of the D2R-authoring/dispatch skills META-8's Tier-25 hook
+watches (`skills/dare-to-rise-code-plan/**`); this edit is itself a governed structural change to a
+D2R input/dispatch surface and is attested under that cascade's tracking rather than treated as an
+ungoverned edit.

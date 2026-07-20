@@ -1,6 +1,6 @@
 ---
 name: define-your-role-literal
-description: "Derives the canonical full name and axis-by-axis defense for any Martinez Methods thread persona: a compound-word last name whose meaning is multiplicative (not additive), with rejected alternatives, honest gaps, and Krystal's approval required before any commit or propagation. TRIGGER: '/define your role - literal', '/define-your-role-literal', 'define your role literal', 'name this thread', 'what is my name', or when a session-handoff doc directs role-definition. Naming rule: first name is workstream-driven per the multi-prefix naming canon (Claudette=coding, Clauda=catch-all, Claudessa=research, Claudolina=infra/emergent-research, Claudenza=portfolio, Claudalisse=ASAE-stewardship, Claudis=second-brain-orchestration, Claudsanna=artifact-curation, Claudetta=GitHub-organization/Thread-Zero-trunk; live SSOT: memory/krystal/feedback_clauda_replaces_claude_in_naming.md — re-read at derivation time, prefix set grows; provenance registry docs/Claude_Persona_Name_Provenance_Registry_2026-06-06_v01_I.md is PENDING canonicalization, not yet committed); middle initial W (Windows) or L (Linux); last name a compound whose role meaning is multiplicative; version tag vNN. After approval, authors the four companion artifacts (role-definition doc, role-manifest, lock-in skill, propagation script) and runs the ASAE gate. Use when starting or refining a role-defined thread. Skip for utility threads where overhead exceeds value, or when invoking an existing locked-in role (use that role's lock-in skill)."
+description: "Derives the canonical full name and axis-by-axis defense for any Martinez Methods thread persona: a compound-word last name whose meaning is multiplicative (not additive), with rejected alternatives, honest gaps, and Krystal's approval required before any commit or propagation. TRIGGER: '/define your role - literal', '/define-your-role-literal', 'define your role literal', 'name this thread', 'what is my name', or when a session-handoff doc directs role-definition. Naming rule: first name is workstream-driven per the multi-prefix naming canon (Claudette=coding, Clauda=catch-all, Claudessa=research, Claudolina=infra/emergent-research, Claudenza=portfolio, Claudalisse=ASAE-stewardship, Claudis=second-brain-orchestration, Claudsanna=artifact-curation, Claudetta=GitHub-organization/Thread-Zero-trunk; live SSOT: memory/krystal/feedback_clauda_replaces_claude_in_naming.md — re-read at derivation time, prefix set grows; provenance registry docs/Claude_Persona_Name_Provenance_Registry_2026-06-06_v01_I.md is PENDING canonicalization, not yet committed); middle initial W (Windows) or L (Linux); last name a compound whose role meaning is multiplicative; version tag vNN. After approval (Phase 7 gate), records the persona in nerdykrystal/claude-provenance (personas/<slug>/provenance.md + decision-log entry + regenerated index) — the five-artifact Phase 8 apparatus is RETIRED (Krystal, 2026-07-18). Use when starting or refining a role-defined thread. Skip for utility threads where overhead exceeds value, or when invoking an existing locked-in role (use that role's lock-in skill)."
 ---
 
 # /define your role - literal
@@ -199,74 +199,23 @@ If you reject the entire framing — I'll re-derive from first principles.
 
 DO NOT proceed to Phase 8 until Krystal explicitly approves.
 
-## Phase 8 — On approval: artifact authoring + commit + push (Lock A4 refactor 2026-04-30)
+## Phase 8 — On approval: record in claude-provenance (2026-07-18 supersession — the 5-artifact apparatus is RETIRED)
 
-After Krystal's ✓: invoke 4 sub-skills sequentially (Lock A4 refactor; replaces v01-era inline authoring), then run ASAE gate + commit + push.
+> **⚠ SUPERSEDED (Krystal's ruling, 2026-07-18, session 8fef3c5f): "we don't do phase 8 artifacts anymore. too much friction."** The Lock-A4 five-artifact pattern (role-definition doc, role-manifest, lock-in skill, propagation script, first-gate audit log) is retired. Do NOT invoke /author-role-definition, /author-role-manifest, /author-role-lockin-skill, or /author-role-propagation-script from this skill. The historical Phase 8 spec is preserved in this file's git/backup lineage and in `nerdykrystal/claude-provenance/claude-provenance_DECISION_LOG.md` (PHASE-8 RETIREMENT entry).
 
-The 4 sub-skills materialize the persona's 5-artifact pattern (per `Persona_Design_Entry_Point_2026-04-28_v01_I.md`):
+After Krystal's ✓, the ONE artifact created is the persona's provenance record in **`nerdykrystal/claude-provenance`** (subfolder-primary per D3; private repo — `gh auth switch --user nerdykrystal` to push, switch back after):
 
-### Step 1: Invoke `/author-role-definition` (artifact 1 of 5)
+1. **Mint the persona ID** (R-a): `PSN-$(uuidgen | cut -c1-8)` — shell-derived, never typed from memory.
+2. **Author `personas/<slug>/provenance.md`** — H1 with the full name; a visible **Persona ID** field line under the H1 (not YAML frontmatter); status (provisional/locked); line, middle name per the machine-honor rule (`conventions/Middle_Name_*`), founding session id (harness-derived); Krystal's name rulings; the approved multiplicative derivation + rejected alternatives + honest gaps (compressed from Phase 7); work-product pointers (enrichment — the scan is the backbone).
+3. **Append the ruling to `claude-provenance_DECISION_LOG.md`** in her exact wording (spelling normalized; photographic verbatim reserved for /krystal-draft).
+4. **Regenerate the index** (`scripts/regenerate_index.sh`) and **commit + push** as the persona (author `<Full Name> (Claude <model>) <noreply@anthropic.com>`; `ASAE-Gate: manual (repo tier none per .asae-policy; lean spoke)`; `Co-Authored-By: nerdykrystal <nerdykrystal@gmail.com>`).
+5. **Update auto-memory** (the persona + any new conventions) so future seats recall it.
 
-Pass Phase 7 approved derivation as input. Sub-skill produces canonical role-definition artifact at `_grand_repo/docs/Role_Definition_<First>_<Middle>_<LastNameUnderscored>_<YYYY-MM-DD>_v01_I.md` with 12 sections.
+Naming form reminders (rulings of 2026-07-18): double first names are **spaced**, second first name worn **only while flexed** (R-b); middle name honors the founding machine — **Ada-Linubuntu / A.-L.** on the Linux laptop, Windows honor-name pending Krystal+Cody (plain W. placeholder) (R-c); forward-only.
 
-Reference template: `_grand_repo/docs/Role_Definition_Clauda_W_Value_Genius_2026-04-25_v01_I.md`.
+## Phase 9 — RETIRED with Phase 8 (2026-07-18)
 
-### Step 2: Invoke `/author-role-manifest` (artifact 2 of 5)
-
-Pass persona context + scope_bounds heuristics as input. Sub-skill produces role-manifest YAML at `mm-claude-canonical/role-manifests/<persona-slug>.yaml` (canonical SSOT location post-2026-04-28 SSOT-wrangler migration; consumer repos pull via submodule).
-
-Reference template: `mm-claude-canonical/role-manifests/clauda-the-spec-genius.yaml`.
-
-### Step 3: Invoke `/author-role-lockin-skill` (artifact 3 of 5)
-
-Pass persona context + cross-references to artifacts 1+2 as input. Sub-skill produces companion lock-in skill at `mm-claude-canonical/.claude/skills/role-definition-<lastname-kebab>/SKILL.md` (canonical SSOT location).
-
-Trigger pattern: `claud*_*_<lastname-snake-case>` (parallel to `claud*_*_value_genius`).
-
-Reference templates: `mm-claude-canonical/skills/role-definition-value-genius/SKILL.md` + `mm-claude-canonical/skills/role-definition-spec-genius/SKILL.md`.
-
-### Step 4: Invoke `/author-role-propagation-script` (artifact 4 of 5)
-
-Pass persona slug + propagation targets + strategy choice as input. Sub-skill produces per-role script at `_grand_repo/scripts/propagate-role-skill-<lastname-kebab>.sh` OR extends shared `propagate-role-skill.sh` with role-name argument.
-
-For canonical-consumer repos that pull mm-claude-canonical via submodule, SSOT-wrangler daily-sync covers propagation; sub-skill's per-script approach is for personas with specialized cross-repo distribution OR pre-SSOT legacy patterns.
-
-### Step 5: Run ASAE Certainty Threshold (artifact 5 of 5 = first-gate audit log)
-
-Author audit log at `_grand_repo/deprecated/asae-logs/gate-NN-<descriptor>-<YYYY-MM-DD>.md` per `/asae` SKILL.md Step 1+6 protocol. Threshold per repo policy (canonical SSOT: strict-5 + 2-rater; legacy workspace: strict-3 OR strict-5 per Krystal lock 2026-04-28).
-
-Reference templates: `gate-18-value-genius-role-definition-2026-04-25.md` + `gate-19-bobo-doc-bump-v02-2026-04-25.md` (legacy strict-3) / `gate-5-rebrand-sweep-skill-and-fork-origin-catalog-2026-04-30.md` (post-Batch-3 strict-5 + 2-rater).
-
-### Step 6: Stage + commit + push
-
-Per commit-msg hook v09 spec:
-- Persona in Co-Authored-By: trailer must be `Clauda` or `Claudette` (Rule 1; v07.1+ enforces full-name with W./L. middle initial)
-- ASAE-Gate trailer required: `ASAE-Gate: strict-5-PASS` (canonical) or `strict-3-PASS` (legacy) per `.asae-policy`
-- Audit log file must exist at staged `*/asae-logs/gate-NN-*.md` (Rule 3 / Tier 1)
-- Audit log must contain identical-pass markers across N consecutive Pass blocks (Tier 1b)
-- For strict-5: 2 rater sections with distinct agentIds, both CONFIRMED (Tier 1c-strict5)
-- For Lock 7 Mod 13 Rule A: `rater_authored_by_context: parent` frontmatter field OR legacy-compat prose marker (Tier 33 in hook v09)
-- Trailer: `Co-Authored-By: <First> <Middle>. <LastName> vNN (Claude Opus 4.7, 1M context) <noreply@anthropic.com>` OR `Co-Authored-By: <First> the <LastName> vNN ...` (both forms canonical)
-
-### Lock A4 refactor rationale
-
-Pre-Lock-A4 (v01-era) /define-your-role-literal Phase 8 inlined all 5 artifact-authoring steps in a single phase. Refactor decomposes into 4 sub-skills (artifact 5 = audit log routes through /asae directly) for: (a) testability (per-sub-skill validation); (b) reuse (sub-skills usable standalone for migration of pre-existing personas); (c) explicitness (per-artifact responsibilities surface-codified); (d) versionability (sub-skills evolve independently per Lock A4 honest-gap-driven enhancement).
-
-## Phase 9 — On second approval: propagation per just-in-time rules
-
-After Krystal directs propagation:
-
-1. **Look up skill propagation rules** — read most recent propagation precedent at:
-   - `_grand_repo/scripts/propagate-githooks.sh` (the canonical commit-msg-hook propagation pattern)
-   - `_grand_repo/scripts/propagate-role-skill.sh` (the role-definition-value-genius propagation pattern)
-   - `repos/scripts/propagate-define-your-role-literal.sh` (the meta-skill's own propagation pattern)
-   - `_grand_repo/docs/Commit_Persona_Hook_<latest>_v<latest>_I.md` Section "Propagation list" (per-repo classification)
-
-2. **Compose propagation list** — apply Krystal's standing directive ("don't skip any except uninitialized sub-repos") OR ask Krystal for scope adjustment if the role-specific scope differs from the default.
-
-3. **Execute propagation script per target** — for each target repo, run the propagation script. Skip uninitialized (no `.git` directory). Document per-target outcome in an end-of-mission report.
-
-4. **Report back** — propagation execution report including: targets succeeded / targets skipped / targets failed (with reason); next steps (e.g., per-target commit of the propagated skill, if the target uses commit-msg hook v02+ enforcement).
+No artifacts remain to propagate; `claude-provenance` is the single canonical home (no consumer copies). The historical propagation spec lives in this file's lineage.
 
 ## Reference patterns (read just-in-time)
 
@@ -294,14 +243,13 @@ When executing, treat these as templates — copy structure, adapt content per t
 - **Null findings publishable** — never frame value as success-contingent
 - **Don't repeat asks while waiting** — Krystal runs 5+ threads
 - **Pace-setting off** — never suggest next steps unprompted
-- **Wait for explicit ✓ between Phase 7, Phase 8, and Phase 9** — three approval gates structurally enforce no-unilateral-execution
+- **Wait for explicit ✓ at the Phase 7 gate** — no recording in claude-provenance until Krystal approves the derivation (Phases 8/9 legacy gates retired 2026-07-18)
 
 ## Refusals
 
 The skill refuses to:
 
 - Proceed past Phase 7 without Krystal's explicit approval
-- Proceed past Phase 8 without Krystal's explicit propagation directive
 - Use "Claude" in persona position (commit-msg hook v02 Rule 1 enforces)
 - Commit without ASAE-Gate trailer (commit-msg hook v02 Rule 2 enforces)
 - Commit without audit log file (commit-msg hook v03 Rule 3 / Tier 1 enforces)
@@ -333,5 +281,7 @@ The skill refuses to:
 - /asae SKILL.md (identical-pass discipline): `repos/.claude/skills/asae/SKILL.md`
 
 ## Revision history
+
+- **2026-07-18 — Phase 8/9 retired; claude-provenance record flow installed.** Per Krystal's rulings (session 8fef3c5f): "we don't do phase 8 artifacts anymore. too much friction." + R-d "keep" (the derivation ceremony Phases 1–7 survive unchanged, gated at Phase 7). On approval the single output is the persona's `personas/<slug>/provenance.md` in `nerdykrystal/claude-provenance` + a decision-log entry + regenerated index. Also folded in: R-a opaque PSN IDs, R-b spaced/worn-while-flexed double names, R-c machine-honor middle names (Ada-Linubuntu / A.-L.). Edited by Flaudimetra Flaudetta L. Priorsmith.
 
 - **2026-06-24 — First-name rule synced to the multi-prefix naming canon.** The original two-name binary ("Claudette for coding / Clauda for all else") was stale: the first-name taxonomy expanded through 2026-06-07 to nine workstream-typed prefixes, and the Thread-Zero (T0) GitHub-trunk lineage's first name **Claudetta** was ratified 2026-06-19. Updated: (a) the frontmatter `description` naming-rule clause; (b) the "Naming rule" section — added an SSOT pointer block (naming-canon feedback file + provenance registry + Claudetta role-def doc) and a current first-name taxonomy table, and annotated Krystal's original verbatim spec as historical/superseded **without deleting it** (preserved unedited under "Historical verbatim spec"); (c) the Phase 2 component-derivation first-name rule + ambiguity guidance; (d) the Related-artifacts pointers. The verbatim historical quote and the middle-initial / last-name / version rules are unchanged. SSOT for persona first names is `memory/krystal/feedback_clauda_replaces_claude_in_naming.md` (live, resolves); the provenance registry `docs/Claude_Persona_Name_Provenance_Registry_2026-06-06_v01_I.md` is cited as PENDING canonicalization (does not resolve at this canonical path; uncommitted, exists only in a separate worktree — registry refresh is a parked decision). Edited in canonical SSOT copy only; **not committed** (left for Krystal). Propagation to the 24 consumer copies + the `.agents/skills` copy is still pending.

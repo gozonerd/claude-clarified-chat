@@ -17,7 +17,7 @@ repo:
   type: "application"
 
   # One-sentence purpose statement. Claude reads this to orient.
-  purpose: "TODO — fill in purpose"
+  purpose: "Desktop tool that un-black-boxes Claude conversation exports — drop in a Claude zip export and browse your own history locally, searchable and readable."
 
   # GitHub org or owner: Martinez-Methods | nerdykrystal
   org: "nerdykrystal"
